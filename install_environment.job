@@ -1,7 +1,6 @@
 #!/bin/bash
 
-#SBATCH --partition=gpu
-#SBATCH --gpus=1
+#SBATCH --partition=rome
 #SBATCH --job-name=InstallEnvironment
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=18
@@ -10,7 +9,7 @@
 
 module purge
 module load 2023
-module load Anaconda3
+module load Anaconda3/2023.07-2
 
 cd $HOME/InvalidAdjustmentSets/config
 conda env create -f environment_cpu-yaml
