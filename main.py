@@ -1,0 +1,145 @@
+import wandb
+import numpy as np
+import sympy as sp
+import hydra
+from omegaconf import DictConfig, OmegaConf
+
+from sklearn.linear_model import LinearRegression
+
+
+def extract_coefficients(equation: str, variables: list) -> list:
+    """
+    Extracts coefficients and their associated variables from a symbolic equation.
+
+    Parameters:
+    equation (str): The equation in string format.
+    variables (list): List of variable names involved in the equation.
+
+    Returns:
+    list: A list of tuples, each containing a variable name and its coefficient in the equation.
+    """
+    # Convert the equation string to a sympy expression
+    expr = sp.sympify(equation)
+
+    # List to hold tuples of variable names and their coefficients
+    coefficients = []
+
+    # Iterate through each term in the expression
+    for term in expr.as_ordered_terms():
+        # For each variable, extract its coefficient and add to the list
+        for var in variables:
+            symbol = sp.Symbol(var)
+            coef = term.coeff(symbol)
+            if coef != 0:
+                coefficients.append((var, float(coef.evalf())))
+
+    return coefficients
+
+
+def generate_data(variables: list, cfg: DictConfig, seed: int) -> np.ndarray:
+
+    equations = cfg.graph.get('edges', [])
+    sample_size = cfg.sample_size
+
+    data = {}
+
+    # Generate standard normal values for all variables first
+    np.random.seed(seed)
+    for var in variables:
+        data[var] = np.random.normal(loc=0, scale=1, size=sample_size)
+
+    for eq in equations:
+        effect = eq['effect']
+        expression = sp.sympify(eq['equation'], locals={var: sp.symbols(var) for var in variables})
+        # Lambdify your expression
+        expr_variables = [str(var) for var in expression.free_symbols]
+        # Lambdify your expression, but only for the variables used in this specific expression
+        func = sp.lambdify([sp.symbols(var) for var in expr_variables], expression, 'numpy')
+        computed_values = func(*[data[var] for var in expr_variables])
+        coefficients_list = extract_coefficients(eq['equation'], variables)
+
+        # Only sum the squares of the coefficients, ignoring the variable names
+        var_coefficients = sum(coef ** 2 for _, coef in coefficients_list)
+
+        # Calculate the variance of the noise to be added
+        noise_variance = 1 - var_coefficients
+
+        # Ensure noise_variance is positive
+        noise_variance = max(noise_variance, 0)
+
+        # Add noise to the computed values
+        noise = np.random.normal(loc=0, scale=np.sqrt(noise_variance), size=sample_size)
+        data[effect] = computed_values + noise
+
+    # Convert data dictionary to numpy array with variables in rows
+    data_array = np.array([data[var] for var in variables])
+
+    return data_array
+
+
+def estimate_treatment_effect(data: np.ndarray, adjustment_set: list, variables: list) -> float:
+    # Map variable names to indices if adjustment_set contains names
+    variable_indices = {name: i for i, name in enumerate(variables)}
+    adjustment_indices = [variable_indices[name] for name in adjustment_set]
+
+    # Extracting Y and A from the data
+    Y = data[variable_indices['Y'], :].T  # Assuming Y is the outcome variable
+    A = data[variable_indices['A'], :].T  # Assuming 'A' is the treatment variable
+
+    # Prepare covariates X
+    if adjustment_indices:
+        X = np.hstack([data[idx, :].reshape(-1, 1) for idx in adjustment_indices])
+        X = np.column_stack((X, A))
+    else:
+        X = A.reshape(-1, 1)
+
+    # Performing linear regression
+    model = LinearRegression().fit(X, Y)
+
+    # Returning the coefficient of A (treatment effect)
+    return model.coef_[-1]
+
+
+@hydra.main(config_path='./config', config_name='config')
+def main(cfg: DictConfig) -> None:
+    """
+    Main function to run experiments based on a Hydra configuration.
+
+    For each seed specified in the configuration, this function initializes a Weights & Biases (wandb) run,
+    generates data, estimates the treatment effect, and logs the seed and estimated treatment effect to wandb.
+
+    Parameters:
+    cfg (DictConfig): The Hydra configuration object containing experimental settings, including the number of seeds,
+                      wandb project and entity information, and other necessary configuration details.
+    """
+
+    # Extract variable names and adjustment set from the configuration
+    variables = [var['name'] for var in cfg.graph['variables']]
+    adjustment_set = cfg.adjustment_set
+
+    # Iterate over the number of seeds specified in the configuration
+    for seed in range(cfg.n_seeds):
+        # Initialize wandb run for the current seed with the experiment configuration
+        wandb.init(project=cfg.wandb.project,
+                   entity=cfg.wandb.entity,
+                   config=OmegaConf.to_container(cfg, resolve=True),
+                   reinit=True)
+
+        # Set the current seed in wandb configuration for reproducibility and tracking
+        wandb.config.update({"Seed": seed})
+
+        # Generate data based on the current configuration and seed
+        data = generate_data(variables, cfg, seed)
+
+        # Estimate the treatment effect using the generated data and specified adjustment set
+        treatment_effect = estimate_treatment_effect(data, adjustment_set, variables)
+
+        # Log the estimated treatment effect as a summary metric for the current run
+        wandb.run.summary["Estimated Treatment Effect"] = treatment_effect
+
+        # Finish the current wandb run before proceeding to the next seed
+        wandb.finish()
+
+
+if __name__ == "__main__":
+    main()

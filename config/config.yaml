@@ -1,0 +1,12 @@
+defaults:
+  - graph: m_bias
+
+wandb:
+  project: nO_examples
+  entity: nadjarutsch
+sample_size: 1000
+n_seeds: 100000
+device: cpu
+adjustment_set:
+  - O1
+  - O2
