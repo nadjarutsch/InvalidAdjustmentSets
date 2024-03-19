@@ -1,0 +1,26 @@
+#!/bin/bash
+
+#SBATCH --partition=genoa
+#SBATCH --job-name=m-bias-2
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=04:00:00
+#SBATCH --array=1-11%11
+#SBATCH --output=slurm_mbias_2_%A_%a.out
+
+module purge
+module load 2023
+module load Anaconda3/2023.07-2
+
+# Your job starts in the directory where you call sbatch
+cd $HOME/InvalidAdjustmentSets
+# Activate your environment
+source activate InvalidAdjustmentSetsSnellius
+
+# Good practice: define your directory where to save the models, and copy the job file to it
+HPARAMS_FILE=$HOME/InvalidAdjustmentSets/jobs/array_job_mbias.txt
+
+# Run your code
+srun python -u main.py \ --hydra.run.dir $TMPDIR/InvalidAdjustmentSets \
+                        --adjustment_set='["M"]' \
+                        $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
