@@ -2,7 +2,7 @@ defaults:
   - graph: m_bias
 
 wandb:
-  project: nO_examples
+  project: IAS_examples
   entity: nadjarutsch
 sample_size: 1000
 n_seeds: 100000
