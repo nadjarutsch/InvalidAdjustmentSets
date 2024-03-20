@@ -5,7 +5,7 @@ wandb:
   project: IAS_examples
   entity: nadjarutsch
 sample_size: 1000
-n_seeds: 100000
+n_seeds: 1000
 adjustment_set:
   - O1
   - O2
