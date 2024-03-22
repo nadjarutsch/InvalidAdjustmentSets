@@ -1,12 +1,12 @@
 #!/bin/bash
 
 #SBATCH --partition=genoa
-#SBATCH --job-name=m-bias-2
+#SBATCH --job-name=m-bias-3
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --time=20:00:00
 #SBATCH --array=1-11%11
-#SBATCH --output=slurm_mbias_2_%A_%a.out
+#SBATCH --output=slurm_mbias_3_%A_%a.out
 
 module purge
 module load 2023
@@ -23,5 +23,5 @@ HPARAMS_FILE=$HOME/InvalidAdjustmentSets/jobs/array_job_mbias.txt
 # Run your code
 srun python -u main.py \
 hydra.run.dir=$TMPDIR/InvalidAdjustmentSets \
-adjustment_set='["M"]' \
+adjustment_set='["O1"]' \
 $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
