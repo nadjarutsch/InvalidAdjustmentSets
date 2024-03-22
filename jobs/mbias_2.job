@@ -23,5 +23,5 @@ HPARAMS_FILE=$HOME/InvalidAdjustmentSets/jobs/array_job_mbias.txt
 # Run your code
 srun python -u main.py \
 hydra.run.dir=$TMPDIR/InvalidAdjustmentSets \
-adjustment_set='["M"]' \
+adjustment_set='["M1"]' \
 $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
