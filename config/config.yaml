@@ -1,11 +1,11 @@
 defaults:
-  - graph: m_bias
+  - graph: fork
 
 wandb:
-  project: IAS_examples
+  project: IAS_examples_fork
   entity: nadjarutsch
 sample_size: 1000
-n_seeds: 5000
+n_seeds: 500
 adjustment_set:
   - O1
   - O2
