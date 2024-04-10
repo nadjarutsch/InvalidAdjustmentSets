@@ -2,7 +2,7 @@ defaults:
   - graph: fork
 
 wandb:
-  project: IAS_examples_fork
+  project: IAS_examples
   entity: nadjarutsch
 sample_size: 1000
 n_seeds: 500
