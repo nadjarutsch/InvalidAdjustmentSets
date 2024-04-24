@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --partition=genoa
+#SBATCH --partition=thin
 #SBATCH --job-name=var-optimal
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
