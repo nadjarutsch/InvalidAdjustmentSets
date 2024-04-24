@@ -152,7 +152,7 @@ def get_bias_and_var_ratio(scm_graph, adjustment_set):
         bias = 0
 
     elif adjustment_set == set(["O2", "F1"]):
-        treatment_var = min(1 - coef_f1a ** 2 - coef_o2a ** 2, 1e-6)    # CAN NOT BE NEGATIVE
+        treatment_var = max(1 - coef_f1a ** 2 - coef_o2a ** 2, 1e-6)    # CAN NOT BE NEGATIVE
         outcome_var = 1 - coef_o2y ** 2 - coef_f1y ** 2 - direct_effect ** 2
         bias = conf_f2o1 / treatment_var
 
