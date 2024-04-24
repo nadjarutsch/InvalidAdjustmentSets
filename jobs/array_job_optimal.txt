@@ -1,3 +1,2 @@
-sample_size=200
-sample_size=500
-sample_size=800
+sample_size=50
+sample_size=100
