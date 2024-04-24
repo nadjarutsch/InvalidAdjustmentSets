@@ -3,8 +3,35 @@ import numpy as np
 import sympy as sp
 import hydra
 from omegaconf import DictConfig, OmegaConf
+import networkx as nx
 
 from sklearn.linear_model import LinearRegression
+from adjustment_sets import get_adjustment_set
+
+def extract_graph(graph_config: DictConfig) -> nx.DiGraph:
+    """
+    Extracts a directed networkx DiGraph from the provided configuration.
+
+    Parameters:
+        graph_config (DictConfig): The configuration object containing variables and edges information.
+
+    Returns:
+        nx.DiGraph: A directed graph representing the causal relationships among variables.
+    """
+    graph = nx.DiGraph()
+
+    # Add nodes to the graph
+    for variable in graph_config.variables:
+        graph.add_node(variable.name)
+
+    # Add edges to the graph
+    for edge in graph_config.edges:
+        effect = edge.effect
+        equation_vars = [var.name for var in graph_config.variables if var.name in edge.equation]
+        for var in equation_vars:
+            graph.add_edge(var, effect)
+
+    return graph
 
 
 def extract_coefficients(equation: str, variables: list) -> list:
@@ -120,25 +147,40 @@ def main(cfg: DictConfig) -> None:
     # Iterate over the number of seeds specified in the configuration
     for seed in range(cfg.n_seeds):
         # Initialize wandb run for the current seed with the experiment configuration
-        wandb.init(project=cfg.wandb.project,
-                   entity=cfg.wandb.entity,
-                   config=OmegaConf.to_container(cfg, resolve=True),
-                   reinit=True)
+        if cfg.wandb.enabled:
+            wandb.init(project=cfg.wandb.project,
+                       entity=cfg.wandb.entity,
+                       config=OmegaConf.to_container(cfg, resolve=True),
+                       reinit=True)
 
-        # Set the current seed in wandb configuration for reproducibility and tracking
-        wandb.config.update({"Seed": seed})
+            # Set the current seed in wandb configuration for reproducibility and tracking
+            wandb.config.update({"Seed": seed})
 
         # Generate data based on the current configuration and seed
         data = generate_data(variables, cfg, seed)
 
+        # Find adjustment set from the known graph and given data
+        if cfg.estimate_adjustment_set:
+            graph = extract_graph(cfg.graph)
+            adjustment_set, size, var_ratio, bias, variance, mse = get_adjustment_set(data, graph, cfg.optimality)
+
         # Estimate the treatment effect using the generated data and specified adjustment set
         treatment_effect = estimate_treatment_effect(data, adjustment_set, variables)
 
-        # Log the estimated treatment effect as a summary metric for the current run
-        wandb.run.summary["Estimated Treatment Effect"] = treatment_effect
+        if cfg.wandb.enabled:
+            # Overwrite the adjustment set in the wandb configuration
+            wandb.config.update({"adjustment_set": adjustment_set})
+            
+            # Log the estimated treatment effect as a summary metric for the current run
+            wandb.run.summary["Estimated Treatment Effect"] = treatment_effect
+            wandb.run.summary["Size"] = size
+            wandb.run.summary["Estimated variability ratio"] = var_ratio
+            wandb.run.summary["Estimated bias"] = bias
+            wandb.run.summary["Estimated variance"] = variance
+            wandb.run.summary["Estimated MSE"] = mse        
 
-        # Finish the current wandb run before proceeding to the next seed
-        wandb.finish()
+            # Finish the current wandb run before proceeding to the next seed
+            wandb.finish()
 
 
 if __name__ == "__main__":

@@ -2,10 +2,13 @@ defaults:
   - graph: fork
 
 wandb:
+  enabled: false
   project: IAS_examples
   entity: nadjarutsch
-sample_size: 1000
-n_seeds: 500
+sample_size: 200
+n_seeds: 10
 adjustment_set:
   - O1
   - O2
+estimate_adjustment_set: true
+optimality: MSE
