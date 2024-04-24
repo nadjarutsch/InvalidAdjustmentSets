@@ -169,7 +169,7 @@ def main(cfg: DictConfig) -> None:
 
         if cfg.wandb.enabled:
             # Overwrite the adjustment set in the wandb configuration
-            wandb.config.update({"adjustment_set": adjustment_set})
+            wandb.config.update({"adjustment_set": adjustment_set}, allow_val_change=True)
             
             # Log the estimated treatment effect as a summary metric for the current run
             wandb.run.summary["Estimated Treatment Effect"] = treatment_effect
