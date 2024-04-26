@@ -26,7 +26,7 @@ hydra.run.dir=$TMPDIR/InvalidAdjustmentSets \
 estimate_adjustment_set='false' \
 optimality='MSE' \
 wandb.enabled='true' \
-wandb.project='IAS_experiments' \
+wandb.project='IAS_experiments_new' \
 graph=fork \
 n_seeds=1000 \
 $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
