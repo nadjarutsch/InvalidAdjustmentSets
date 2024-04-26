@@ -146,16 +146,6 @@ def main(cfg: DictConfig) -> None:
 
     # Iterate over the number of seeds specified in the configuration
     for seed in range(cfg.n_seeds):
-        # Initialize wandb run for the current seed with the experiment configuration
-        if cfg.wandb.enabled:
-            wandb.init(project=cfg.wandb.project,
-                       entity=cfg.wandb.entity,
-                       config=OmegaConf.to_container(cfg, resolve=True),
-                       reinit=True)
-
-            # Set the current seed in wandb configuration for reproducibility and tracking
-            wandb.config.update({"Seed": seed})
-
         # Generate data based on the current configuration and seed
         data = generate_data(variables, cfg, seed)
 
@@ -168,6 +158,14 @@ def main(cfg: DictConfig) -> None:
         treatment_effect = estimate_treatment_effect(data, adjustment_set, variables)
 
         if cfg.wandb.enabled:
+            # Initialize wandb run for the current seed with the experiment configuration
+            wandb.init(project=cfg.wandb.project,
+                       entity=cfg.wandb.entity,
+                       config=OmegaConf.to_container(cfg, resolve=True),
+                       reinit=True)
+
+            # Set the current seed in wandb configuration for reproducibility and tracking
+            wandb.config.update({"Seed": seed})
             # Overwrite the adjustment set in the wandb configuration
             wandb.config.update({"adjustment_set": adjustment_set}, allow_val_change=True)
             
