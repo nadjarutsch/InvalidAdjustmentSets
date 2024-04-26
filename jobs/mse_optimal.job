@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --partition=thin
+#SBATCH --partition=rome
 #SBATCH --job-name=mse-optimal
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
@@ -23,7 +23,7 @@ HPARAMS_FILE=$HOME/InvalidAdjustmentSets/jobs/array_job_optimal.txt
 # Run your code
 srun python -u main.py \
 hydra.run.dir=$TMPDIR/InvalidAdjustmentSets \
-estimate_adjustment_set='true' \
+estimate_adjustment_set='false' \
 optimality='MSE' \
 wandb.enabled='true' \
 wandb.project='IAS_experiments' \
