@@ -173,11 +173,13 @@ def main(cfg: DictConfig) -> None:
             
             # Log the estimated treatment effect as a summary metric for the current run
             wandb.run.summary["Estimated Treatment Effect"] = treatment_effect
-            wandb.run.summary["Size"] = size
-            wandb.run.summary["Estimated variability ratio"] = var_ratio
-            wandb.run.summary["Estimated bias"] = bias
-            wandb.run.summary["Estimated variance"] = variance
-            wandb.run.summary["Estimated MSE"] = mse        
+            
+            if cfg.estimate_adjustment_set:
+                wandb.run.summary["Size"] = size
+                wandb.run.summary["Estimated variability ratio"] = var_ratio
+                wandb.run.summary["Estimated bias"] = bias
+                wandb.run.summary["Estimated variance"] = variance
+                wandb.run.summary["Estimated MSE"] = mse        
 
             # Finish the current wandb run before proceeding to the next seed
             wandb.finish()
