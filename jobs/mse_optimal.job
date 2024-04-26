@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --time=20:00:00
-#SBATCH --array=1-3%3
+#SBATCH --array=1-6%6
 #SBATCH --output=slurm_mse_optimal_%A_%a.out
 
 module purge
@@ -23,7 +23,7 @@ HPARAMS_FILE=$HOME/InvalidAdjustmentSets/jobs/array_job_optimal.txt
 # Run your code
 srun python -u main.py \
 hydra.run.dir=$TMPDIR/InvalidAdjustmentSets \
-estimate_adjustment_set='true' \
+estimate_adjustment_set='false' \
 optimality='MSE' \
 wandb.enabled='true' \
 wandb.project='IAS_experiments' \
