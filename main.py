@@ -5,7 +5,7 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 import networkx as nx
 import json
-from tqdm import tqdm
+#from tqdm import tqdm
 
 from sklearn.linear_model import LinearRegression
 from adjustment_sets import get_adjustment_set, estimate_treatment_effect
@@ -125,7 +125,7 @@ def main(cfg: DictConfig) -> None:
     adjustment_set = cfg.adjustment_set
 
     # Iterate over the number of seeds specified in the configuration
-    for seed in tqdm(range(0, cfg.n_seeds)):
+    for seed in range(0, cfg.n_seeds):
         # Generate data based on the current configuration and seed
         data = generate_data(variables, cfg, seed)
 
