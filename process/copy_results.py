@@ -23,13 +23,10 @@ for file in out_files:
 
 print(unique_paths)
 
-# Define the local directory to save the files
-local_user = "nadrut"
-local_host = "Nadjas-MacBook-Pro.local"
-local_directory = "/Users/nadrut/PycharmProjects/nO_examples/results_mbias"  # Update with your local path
 
 # Copy each file to the local directory
 for path in unique_paths:
-    path = path.strip()  # Remove any extra whitespace/newlines
-    subprocess.run(['scp', path, f"{local_user}@{local_host}:{local_directory}"])
+    print(f"rsync -av nrutsch@snellius.surf.nl:{path} results_mbias \n")
+#    path = path.strip()  # Remove any extra whitespace/newlines
+#    subprocess.run(['scp', path, f"{local_user}@{local_host}:{local_directory}"])
 
