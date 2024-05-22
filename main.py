@@ -6,6 +6,7 @@ from omegaconf import DictConfig, OmegaConf
 import networkx as nx
 import json
 #from tqdm import tqdm
+import os
 
 from sklearn.linear_model import LinearRegression
 from adjustment_sets import get_adjustment_set, estimate_treatment_effect
