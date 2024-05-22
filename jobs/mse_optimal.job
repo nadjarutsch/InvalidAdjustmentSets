@@ -26,6 +26,6 @@ hydra.run.dir=$TMPDIR/InvalidAdjustmentSets \
 estimate_adjustment_set='true' \
 optimality='MSE' \
 wandb.enabled='false' \
-graph=mbias \
+graph=m_bias \
 n_seeds=10000 \
 $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
