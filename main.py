@@ -176,7 +176,7 @@ def main(cfg: DictConfig) -> None:
         results.append(result)
 
         # Check if scratch directory is available
-        scratch_dir = '/scratch/nrutsch'
+        scratch_dir = '/scratch-local/nrutsch'
         if os.path.exists(scratch_dir) and os.access(scratch_dir, os.W_OK):
             output_dir = scratch_dir
         else:
