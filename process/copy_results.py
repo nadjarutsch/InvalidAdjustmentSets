@@ -8,6 +8,8 @@ directory = "/gpfs/home5/nrutsch/InvalidAdjustmentSets/jobs/"
 # Read all .out files
 out_files = glob.glob(directory + "*.out")
 
+print(out_files)
+
 # Initialize a set to store unique paths
 unique_paths = set()
 
