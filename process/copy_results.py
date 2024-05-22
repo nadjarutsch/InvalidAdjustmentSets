@@ -21,6 +21,8 @@ for file in out_files:
         paths = path_pattern.findall(content)
         unique_paths.update(paths)
 
+print(unique_paths)
+
 # Define the local directory to save the files
 local_user = "nadrut"
 local_host = "Nadjas-MacBook-Pro.local"
