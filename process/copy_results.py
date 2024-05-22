@@ -3,7 +3,7 @@ import re
 import subprocess
 
 # Define the directory containing the .out files
-directory = "/InvalidAdjustmentSets/jobs/"
+directory = "/gpfs/home5/nrutsch/InvalidAdjustmentSets/jobs/"
 
 # Read all .out files
 out_files = glob.glob(directory + "*.out")
