@@ -18,7 +18,6 @@ path_pattern = re.compile(r'/gpfs/scratch\d+/nodespecific/tcn\d+/nrutsch\.\d+/In
 for file in out_files:
     with open(file, 'r') as f:
         content = f.read()
-        print(content)
         paths = path_pattern.findall(content)
         unique_paths.update(paths)
 
