@@ -2,71 +2,40 @@ import numpy as np
 import networkx as nx
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
+from sklearn.utils import resample
 from itertools import combinations
 
 
-def estimate_scm(data: np.ndarray, graph: nx.DiGraph) -> nx.DiGraph:
-    """
-    Estimate the Structural Causal Model (SCM) coefficients based on the provided DAG and normalized data, where the data is structured with variables as rows and samples as columns. Return the graph with edges labeled with the regression coefficients.
 
-    Parameters:
-        data (np.ndarray): Observational data where rows correspond to variables and columns to samples in the DAG.
-        graph (nx.DiGraph): Directed acyclic graph representing the causal structure among the variables.
+def estimate_treatment_effect(data: np.ndarray, adjustment_set: list, variables: list) -> float:
+    # Map variable names to indices if adjustment_set contains names
+    variable_indices = {name: i for i, name in enumerate(variables)}
+    adjustment_indices = [variable_indices[name] for name in adjustment_set]
 
-    Returns:
-        nx.DiGraph: A new directed graph with the same structure as the input graph but with edges annotated with the estimated coefficients.
-    """
-    # Number of variables should match the number of nodes in the graph
-    assert data.shape[0] == len(
-        graph.nodes()), "The number of rows in data must match the number of nodes in the graph."
+    # Extracting Y and A from the data
+    Y = data[variable_indices['Y'], :].T  # Assuming Y is the outcome variable
+    A = data[variable_indices['A'], :].T  # Assuming 'A' is the treatment variable
 
-    # Normalize the data
-    scaler = StandardScaler()
-    normalized_data = scaler.fit_transform(data.T).T  # Transpose for normalization and transpose back
+    # Prepare covariates X
+    if adjustment_indices:
+        X = np.hstack([data[idx, :].reshape(-1, 1) for idx in adjustment_indices])
+        X = np.column_stack((X, A))
+    else:
+        X = A.reshape(-1, 1)
 
-    # Variables are assumed to be in the same order as the nodes in the graph for simplicity
-    variable_names = list(graph.nodes())
-    scm_graph = nx.DiGraph()
+    # Performing linear regression
+    model = LinearRegression().fit(X, Y)
 
-    # Initialize the graph with nodes
-    scm_graph.add_nodes_from(variable_names)
-
-    for i, var in enumerate(variable_names):
-        # Identify parents of the variable in the DAG
-        parents = list(graph.predecessors(var))
-        if parents:
-            # If there are parents, get the indices of the parents
-            parent_indices = [variable_names.index(p) for p in parents]
-            # Extract the normalized data for the parents
-            X = normalized_data[parent_indices, :]
-        else:
-            # If no parents, no edges to add for this variable
-            continue
-
-        # Response variable from normalized data
-        y = normalized_data[i, :]
-
-        # Create the Linear Regression model without an intercept
-        model = LinearRegression(fit_intercept=False)
-
-        # Fit the model
-        model.fit(X.T, y)  # Transpose X to match samples as columns
-
-        # Extract coefficients and add edges with these coefficients as labels
-        for j, coef in zip(parent_indices, model.coef_):
-            parent = variable_names[j]
-            # Add edge with coefficient as the label
-            scm_graph.add_edge(parent, var, weight=coef)
-
-    return scm_graph
+    # Returning the coefficient of A (treatment effect)
+    return model.coef_[-1]
 
 
 def get_adjustment_set(data, graph, optimality):
     adjustment_candidates = prune_variables(graph)
-    scm_graph = estimate_scm(data, graph)       
+  #  scm_graph = estimate_scm(data, graph)
     
     potential_adj_sets = []
-    sample_size = data.shape[1] # Number of columns/samples
+ #   sample_size = data.shape[1] # Number of columns/samples
 
     # Generating all combinations
     for r in range(0, len(adjustment_candidates) + 1):
@@ -76,14 +45,17 @@ def get_adjustment_set(data, graph, optimality):
     potential_adj_sets = prune_adj_sets(potential_adj_sets, graph)
     properties = []
 
+    # TODO: remove manual
+ #   potential_adj_sets = [set([]), set(["O1", "O2"]), set(["O1"]), set(["O2"]), set(["F1", "O2"]), set(["F2", "O2"]), set(["F1"]), set(["F2"])]
+    potential_adj_sets = [set([]), set(["O1", "O2"]), set(["O1"]), set(["O2"]), set(["M1", "O2"]), set(["M1"])]
+
     for adjustment_set in potential_adj_sets:
-        bias, variability_ratio = get_bias_and_var_ratio(scm_graph, adjustment_set)
-        variance = variability_ratio / (sample_size - len(adjustment_set) - 3)
+        bias = estimate_bias(data, graph, adjustment_set, ["O1", "O2"])
+        variance = estimate_variance(data, graph, adjustment_set)
         expected_mse = bias ** 2 + variance
         properties.append({
             'Adjustment set': adjustment_set,
             'Size': len(adjustment_set),
-            'Variability ratio': variability_ratio,
             'Bias': bias,
             'Variance': variance,
             'MSE': expected_mse
@@ -92,7 +64,79 @@ def get_adjustment_set(data, graph, optimality):
     # Find the adjustment set with the minimum MSE or Variance
     best_property = min(properties, key=lambda x: x[optimality])
 
-    return best_property['Adjustment set'], best_property['Size'], best_property['Variability ratio'], best_property['Bias'], best_property['Variance'], best_property['MSE']
+    return best_property['Adjustment set'], best_property['Size'], best_property['Bias'], best_property['Variance'], best_property['MSE']
+
+
+def estimate_variance(data, graph, adjustment_set):
+    # Extract column indices from graph nodes
+    nodes = list(graph.nodes())
+    treatment_index = nodes.index("A")
+    outcome_index = nodes.index("Y")
+
+    # Define the adjustment variables
+    adjustment_indices = [nodes.index(node) for node in adjustment_set]
+
+    # Prepare data
+    A = data[treatment_index, :].reshape(-1, 1)  # Treatment variable (transposed for samples as rows)
+    Y = data[outcome_index, :].reshape(-1, 1)  # Outcome variable (transposed for samples as rows)
+
+    if adjustment_indices:
+        # Create the adjustment matrix X
+        X_adjust = data[adjustment_indices, :].T  # Adjustment variables (transposed for samples as rows)
+
+        # Fit linear regression model for the treatment
+        reg_treatment = LinearRegression().fit(X_adjust, A)
+
+        # Add the treatment variable A to the adjustment matrix X
+        X_adjust_with_treatment = np.column_stack((X_adjust, A))
+
+        # Fit linear regression model for the outcome
+        reg_outcome = LinearRegression().fit(X_adjust_with_treatment, Y)
+
+        # Calculate residuals
+        residuals_treatment = A - reg_treatment.predict(X_adjust)
+        residuals_outcome = Y - reg_outcome.predict(X_adjust_with_treatment)
+    else:
+        # If no adjustment variables, just use the mean
+        residuals_treatment = A - np.mean(A)
+        residuals_outcome = Y - np.mean(Y)
+
+    # Calculate RSS
+    rss_treatment = np.sum(residuals_treatment ** 2)
+    rss_outcome = np.sum(residuals_outcome ** 2)
+
+    # Calculate the estimated error variance for the outcome
+    # If there are no adjustment variables, adjust degrees of freedom accordingly
+    df = data.shape[1] - len(adjustment_set) - 1
+    est_error_var_outcome = rss_outcome / df
+
+    return est_error_var_outcome / rss_treatment
+
+
+# Function to estimate the bias of the adjustment set
+def estimate_bias(data, graph, adjustment_set, unbiased_set, n_bootstrap=100):
+    # Create a list of variable names in the order they appear in data
+    variables = list(graph.nodes())  # Assuming the order in the graph matches the order in the data
+
+    biases = []
+
+    for _ in range(n_bootstrap):
+        # Resample the data with replacement
+        bootstrap_sample = resample(data.T).T
+
+        # Estimate the treatment effect using the adjustment set
+        adj_treatment_effect = estimate_treatment_effect(bootstrap_sample, adjustment_set, variables)
+
+        # Estimate the treatment effect using the unbiased set
+        unbiased_treatment_effect = estimate_treatment_effect(bootstrap_sample, unbiased_set, variables)
+
+        # Calculate the bias
+        bias = adj_treatment_effect - unbiased_treatment_effect
+        biases.append(bias)
+
+    # Calculate the mean bias over all bootstrap samples
+    mean_bias = np.mean(biases)
+    return mean_bias
 
 
 def prune_variables(graph):
@@ -103,67 +147,3 @@ def prune_variables(graph):
 def prune_adj_sets(potential_adj_sets, graph):  # TODO: implement graphical criterion
     return potential_adj_sets
 
-
-def get_bias_and_var_ratio(scm_graph, adjustment_set):
-    # TODO: compute from graph
-
-    direct_effect = scm_graph['A']['Y']['weight']
-    conf_f1o1 = scm_graph['O1']['Y']['weight'] * scm_graph['F1']['O1']['weight'] * scm_graph['F1']['A']['weight']
-    conf_f2o1 = scm_graph['O1']['Y']['weight'] * scm_graph['F2']['O1']['weight'] * scm_graph['F2']['A']['weight']
-    conf_o2 = scm_graph['O2']['Y']['weight'] * scm_graph['O2']['A']['weight']
-
-    coef_o1a = scm_graph['F1']['O1']['weight'] * scm_graph['F1']['A']['weight'] + scm_graph['F2']['O1']['weight'] * scm_graph['F2']['A']['weight']
-    coef_f1y = scm_graph['F1']['O1']['weight'] * scm_graph['O1']['Y']['weight']
-    coef_f2y = scm_graph['F2']['O1']['weight'] * scm_graph['O1']['Y']['weight']
-    coef_f1a = scm_graph['F1']['A']['weight']
-    coef_f2a = scm_graph['F2']['A']['weight']
-    coef_o2a = scm_graph['O2']['A']['weight']
-    coef_o1y = scm_graph['O1']['Y']['weight']
-    coef_o2y = scm_graph['O2']['Y']['weight']
-
-    if adjustment_set == set([]):
-        treatment_var = 1
-        outcome_var = 1 - direct_effect ** 2
-        bias = (conf_f1o1 + conf_f2o1 + conf_o2) / treatment_var
-
-    elif adjustment_set == set(["O1"]):
-        treatment_var = 1 - coef_o1a ** 2
-        outcome_var = 1 - coef_o1y ** 2 - direct_effect ** 2
-        bias = conf_o2 / treatment_var
-
-    elif adjustment_set == set(["O2"]):
-        treatment_var = 1 - coef_o2a ** 2
-        outcome_var = 1 - coef_o2y ** 2 - direct_effect ** 2
-        bias = (conf_f1o1 + conf_f2o1) / treatment_var
-
-    elif adjustment_set == set(["F1"]):
-        treatment_var = 1 - coef_f1a ** 2
-        outcome_var = 1 - coef_f1y ** 2 - direct_effect ** 2
-        bias = (conf_f2o1 + conf_o2) / treatment_var
-
-    elif adjustment_set == set(["F2"]):
-        treatment_var = 1 - coef_f2a ** 2
-        outcome_var = 1 - coef_f2y ** 2 - direct_effect ** 2
-        bias = (conf_f1o1 + conf_o2) / treatment_var
-
-    elif adjustment_set == set(["O1", "O2"]):
-        treatment_var = 1 - coef_o1a ** 2 - coef_o2a ** 2
-        outcome_var = 1 - coef_o1y ** 2 - coef_o2y ** 2 - direct_effect ** 2
-        bias = 0
-
-    elif adjustment_set == set(["O2", "F1"]):
-        treatment_var = max(1 - coef_f1a ** 2 - coef_o2a ** 2, 1e-6)    # CAN NOT BE NEGATIVE
-        outcome_var = 1 - coef_o2y ** 2 - coef_f1y ** 2 - direct_effect ** 2
-        bias = conf_f2o1 / treatment_var
-
-    elif adjustment_set == set(["O2", "F2"]):
-        treatment_var = 1 - coef_f2a ** 2 - coef_o2a ** 2
-        outcome_var = 1 - coef_o2y ** 2 - coef_f2y ** 2 - direct_effect ** 2
-        bias = conf_f1o1 / treatment_var
-
-    else:   # factually exclude other adjustment sets
-        treatment_var = 0.001
-        outcome_var = 1
-        bias = 1000
-
-    return bias, outcome_var / treatment_var

@@ -4,9 +4,11 @@ import sympy as sp
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import networkx as nx
+import json
+from tqdm import tqdm
 
 from sklearn.linear_model import LinearRegression
-from adjustment_sets import get_adjustment_set
+from adjustment_sets import get_adjustment_set, estimate_treatment_effect
 
 def extract_graph(graph_config: DictConfig) -> nx.DiGraph:
     """
@@ -104,29 +106,6 @@ def generate_data(variables: list, cfg: DictConfig, seed: int) -> np.ndarray:
     return data_array
 
 
-def estimate_treatment_effect(data: np.ndarray, adjustment_set: list, variables: list) -> float:
-    # Map variable names to indices if adjustment_set contains names
-    variable_indices = {name: i for i, name in enumerate(variables)}
-    adjustment_indices = [variable_indices[name] for name in adjustment_set]
-
-    # Extracting Y and A from the data
-    Y = data[variable_indices['Y'], :].T  # Assuming Y is the outcome variable
-    A = data[variable_indices['A'], :].T  # Assuming 'A' is the treatment variable
-
-    # Prepare covariates X
-    if adjustment_indices:
-        X = np.hstack([data[idx, :].reshape(-1, 1) for idx in adjustment_indices])
-        X = np.column_stack((X, A))
-    else:
-        X = A.reshape(-1, 1)
-
-    # Performing linear regression
-    model = LinearRegression().fit(X, Y)
-
-    # Returning the coefficient of A (treatment effect)
-    return model.coef_[-1]
-
-
 @hydra.main(config_path='./config', config_name='config')
 def main(cfg: DictConfig) -> None:
     """
@@ -142,20 +121,33 @@ def main(cfg: DictConfig) -> None:
 
     # Extract variable names and adjustment set from the configuration
     variables = [var['name'] for var in cfg.graph['variables']]
+    results = []
     adjustment_set = cfg.adjustment_set
 
     # Iterate over the number of seeds specified in the configuration
-    for seed in range(cfg.n_seeds):
+    for seed in tqdm(range(0, cfg.n_seeds)):
         # Generate data based on the current configuration and seed
         data = generate_data(variables, cfg, seed)
 
         # Find adjustment set from the known graph and given data
         if cfg.estimate_adjustment_set:
             graph = extract_graph(cfg.graph)
-            adjustment_set, size, var_ratio, bias, variance, mse = get_adjustment_set(data, graph, cfg.optimality)
+            adjustment_set, size, bias, variance, mse = get_adjustment_set(data, graph, cfg.optimality)
+        else:
+            bias, variance, size = None, None, len(adjustment_set)
 
         # Estimate the treatment effect using the generated data and specified adjustment set
         treatment_effect = estimate_treatment_effect(data, adjustment_set, variables)
+
+        result = {
+            "Seed": seed,
+            "Treatment Effect": treatment_effect,
+            "Adjustment Set": list(adjustment_set),
+            "Estimated": cfg.estimate_adjustment_set,
+            "Sample size": cfg.sample_size,
+            "Bias_est": bias,
+            "Variance_est": variance
+        }
 
         if cfg.wandb.enabled:
             # Initialize wandb run for the current seed with the experiment configuration
@@ -168,19 +160,25 @@ def main(cfg: DictConfig) -> None:
             wandb.config.update({"Seed": seed})
             # Overwrite the adjustment set in the wandb configuration
             wandb.config.update({"adjustment_set": adjustment_set}, allow_val_change=True)
-            
+
             # Log the estimated treatment effect as a summary metric for the current run
             wandb.run.summary["Estimated Treatment Effect"] = treatment_effect
-            
+
             if cfg.estimate_adjustment_set:
                 wandb.run.summary["Size"] = size
-                wandb.run.summary["Estimated variability ratio"] = var_ratio
                 wandb.run.summary["Estimated bias"] = bias
                 wandb.run.summary["Estimated variance"] = variance
-                wandb.run.summary["Estimated MSE"] = mse        
 
             # Finish the current wandb run before proceeding to the next seed
             wandb.finish()
+
+        results.append(result)
+
+        # Save results to a JSON file
+        filename = f'results_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}.json'
+
+        with open(filename, 'w') as f:
+            json.dump(results, f, indent=4)
 
 
 if __name__ == "__main__":

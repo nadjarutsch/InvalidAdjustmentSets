@@ -5,8 +5,8 @@ wandb:
   enabled: false
   project: IAS_examples
   entity: nadjarutsch
-sample_size: 200
-n_seeds: 10
+sample_size: 50
+n_seeds: 10000
 adjustment_set:
   - O1
   - O2

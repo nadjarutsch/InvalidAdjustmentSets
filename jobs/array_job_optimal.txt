@@ -1,6 +1,13 @@
+sample_size=10
+sample_size=20
+sample_size=30
+sample_size=40
 sample_size=50
+sample_size=60
+sample_size=70
+sample_size=80
+sample_size=90
 sample_size=100
+sample_size=150
 sample_size=200
-sample_size=300
-sample_size=500
 sample_size=1000
