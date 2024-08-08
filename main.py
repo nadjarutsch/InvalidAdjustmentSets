@@ -133,9 +133,10 @@ def main(cfg: DictConfig) -> None:
         # Find adjustment set from the known graph and given data
         if cfg.estimate_adjustment_set:
             graph = extract_graph(cfg.graph)
-            adjustment_set, size, bias, variance, mse = get_adjustment_set(data, graph, cfg.optimality)
+            adjustment_set, size, bias, variance, mse, rss_A = get_adjustment_set(data, graph, cfg.optimality)
         else:
-            bias, variance, size = None, None, len(adjustment_set)
+            # For a fixed adjustment set, we do not need to evaluate the estimation of bias and variance
+            bias, variance, size, rss_A = None, None, len(adjustment_set), None
 
         # Estimate the treatment effect using the generated data and specified adjustment set
         treatment_effect = estimate_treatment_effect(data, adjustment_set, variables)
@@ -147,7 +148,8 @@ def main(cfg: DictConfig) -> None:
             "Estimated": cfg.estimate_adjustment_set,
             "Sample size": cfg.sample_size,
             "Bias_est": bias,
-            "Variance_est": variance
+            "Variance_est": variance,
+            "RSS_A": rss_A
         }
 
         if cfg.wandb.enabled:

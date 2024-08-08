@@ -47,10 +47,19 @@ def get_adjustment_set(data, graph, optimality):
     properties = []
 
     # TODO: remove manual
-    potential_adj_sets = [set([]), set(["O1", "O2"]), set(["O1"]), set(["O2"]), set(["F1", "O2"]), set(["F2", "O2"]), set(["F1"]), set(["F2"])]
+    potential_adj_sets = [set([]), set(["O1"]), set(["O2"]), set(["F1", "O2"]), set(["F2", "O2"]), set(["F1"]), set(["F2"])]
  #   potential_adj_sets = [set([]), set(["O1", "O2"]), set(["O1"]), set(["O2"]), set(["M1", "O2"]), set(["M1"])]
 
     o_variance = estimate_variance(data, graph, set(["O1", "O2"]))
+    properties.append({
+        'Adjustment set': set(["O1", "O2"]),
+        'Size': len(set(["O1", "O2"])),
+        'Bias': 0,
+        'Variance': o_variance,
+        'MSE': o_variance,
+        'RSS_A': None
+    })
+
     for adjustment_set in potential_adj_sets:
         variance, rss_A = estimate_variance(data, graph, adjustment_set)
         if variance < o_variance:
