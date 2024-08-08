@@ -27,5 +27,5 @@ estimate_adjustment_set='true' \
 optimality='MSE' \
 wandb.enabled='false' \
 graph=fork \
-n_seeds=1 \
+n_seeds=10000 \
 $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
