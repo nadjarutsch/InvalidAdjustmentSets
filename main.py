@@ -183,6 +183,7 @@ def main(cfg: DictConfig) -> None:
         output_dir = scratch_dir
     else:
         output_dir = os.getcwd()
+    print(f"Saving files in {output_dir}")
 
     # Define the filename with the path in the chosen directory
     filename = os.path.join(output_dir, f'results_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}.json')
