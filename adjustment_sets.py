@@ -52,7 +52,7 @@ def get_adjustment_set(data, graph, optimality):
 
     o_variance = estimate_variance(data, graph, set(["O1", "O2"]))
     for adjustment_set in potential_adj_sets:
-        variance = estimate_variance(data, graph, adjustment_set)
+        variance, rss_A = estimate_variance(data, graph, adjustment_set)
         if variance < o_variance:
             bias = estimate_bias(data, graph, adjustment_set, ["O1", "O2"])
         else:
@@ -63,13 +63,14 @@ def get_adjustment_set(data, graph, optimality):
             'Size': len(adjustment_set),
             'Bias': bias,
             'Variance': variance,
-            'MSE': expected_mse
+            'MSE': expected_mse,
+            'RSS_A': rss_A
         })
 
     # Find the adjustment set with the minimum MSE or Variance
     best_property = min(properties, key=lambda x: x[optimality])
 
-    return best_property['Adjustment set'], best_property['Size'], best_property['Bias'], best_property['Variance'], best_property['MSE']
+    return best_property['Adjustment set'], best_property['Size'], best_property['Bias'], best_property['Variance'], best_property['MSE'], best_property['RSS_A']
 
 
 def estimate_variance(data, graph, adjustment_set):
@@ -115,7 +116,7 @@ def estimate_variance(data, graph, adjustment_set):
     df = data.shape[1] - len(adjustment_set) - 1
     est_error_var_outcome = rss_outcome / df
 
-    return est_error_var_outcome / rss_treatment
+    return est_error_var_outcome / rss_treatment, rss_treatment
 
 
 # Function to estimate the bias of the adjustment set
