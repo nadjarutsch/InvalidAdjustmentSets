@@ -4,6 +4,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import resample
 from itertools import combinations
+from scipy.stats import bootstrap
 
 
 
@@ -46,12 +47,16 @@ def get_adjustment_set(data, graph, optimality):
     properties = []
 
     # TODO: remove manual
- #   potential_adj_sets = [set([]), set(["O1", "O2"]), set(["O1"]), set(["O2"]), set(["F1", "O2"]), set(["F2", "O2"]), set(["F1"]), set(["F2"])]
-    potential_adj_sets = [set([]), set(["O1", "O2"]), set(["O1"]), set(["O2"]), set(["M1", "O2"]), set(["M1"])]
+    potential_adj_sets = [set([]), set(["O1", "O2"]), set(["O1"]), set(["O2"]), set(["F1", "O2"]), set(["F2", "O2"]), set(["F1"]), set(["F2"])]
+ #   potential_adj_sets = [set([]), set(["O1", "O2"]), set(["O1"]), set(["O2"]), set(["M1", "O2"]), set(["M1"])]
 
+    o_variance = estimate_variance(data, graph, set(["O1", "O2"]))
     for adjustment_set in potential_adj_sets:
-        bias = estimate_bias(data, graph, adjustment_set, ["O1", "O2"])
         variance = estimate_variance(data, graph, adjustment_set)
+        if variance < o_variance:
+            bias = estimate_bias(data, graph, adjustment_set, ["O1", "O2"])
+        else:
+            continue
         expected_mse = bias ** 2 + variance
         properties.append({
             'Adjustment set': adjustment_set,
@@ -114,7 +119,31 @@ def estimate_variance(data, graph, adjustment_set):
 
 
 # Function to estimate the bias of the adjustment set
-def estimate_bias(data, graph, adjustment_set, unbiased_set, n_bootstrap=100):
+'''def estimate_bias(data, graph, adjustment_set, unbiased_set, n_bootstrap=1000):
+    # Create a list of variable names in the order they appear in data
+    variables = list(graph.nodes())  # Assuming the order in the graph matches the order in the data
+
+    biases = []
+
+    for _ in range(n_bootstrap):
+        # Resample the data with replacement
+        bootstrap_sample = resample(data.T).T
+
+        # Estimate the treatment effect using the adjustment set
+        adj_treatment_effect = estimate_treatment_effect(bootstrap_sample, adjustment_set, variables)
+
+        # Estimate the treatment effect using the unbiased set
+        unbiased_treatment_effect = estimate_treatment_effect(bootstrap_sample, unbiased_set, variables)
+
+        # Calculate the bias
+        bias = adj_treatment_effect - unbiased_treatment_effect
+        biases.append(bias)
+
+    # Calculate the mean bias over all bootstrap samples
+    mean_bias = np.mean(biases)
+    return mean_bias'''
+
+def estimate_bias(data, graph, adjustment_set, unbiased_set, n_bootstrap=1000):
     # Create a list of variable names in the order they appear in data
     variables = list(graph.nodes())  # Assuming the order in the graph matches the order in the data
 
