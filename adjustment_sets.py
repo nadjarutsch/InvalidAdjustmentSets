@@ -153,7 +153,7 @@ def estimate_variance(data, graph, adjustment_set):
     mean_bias = np.mean(biases)
     return mean_bias'''
 
-def estimate_bias(data, graph, adjustment_set, unbiased_set, n_bootstrap=1000):
+def estimate_bias(data, graph, adjustment_set, unbiased_set, n_bootstrap=3000):
     # Create a list of variable names in the order they appear in data
     variables = list(graph.nodes())  # Assuming the order in the graph matches the order in the data
 
