@@ -177,24 +177,24 @@ def main(cfg: DictConfig) -> None:
 
         results.append(result)
 
-    # Check if scratch directory is available
-    scratch_dir = '/scratch-local/nrutsch'
-    if os.path.exists(scratch_dir) and os.access(scratch_dir, os.W_OK):
-        output_dir = scratch_dir
-    else:
-        output_dir = os.getcwd()
-    print(f"Saving files in {output_dir}")
+        # Check if scratch directory is available
+        scratch_dir = '/scratch-local/nrutsch'
+        if os.path.exists(scratch_dir) and os.access(scratch_dir, os.W_OK):
+            output_dir = scratch_dir
+        else:
+            output_dir = os.getcwd()
+        print(f"Saving files in {output_dir}")
 
-    # Define the filename with the path in the chosen directory
-    filename = os.path.join(output_dir, f'results_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}.json')
+        # Define the filename with the path in the chosen directory
+        filename = os.path.join(output_dir, f'results_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}.json')
 
-    # Save results to a JSON file
-    try:
-        with open(filename, 'w') as f:
-            json.dump(results, f, indent=4)
-        print(f"File saved successfully: {filename}")
-    except Exception as e:
-        print(f"Error saving file: {e}")
+        # Save results to a JSON file
+        try:
+            with open(filename, 'w') as f:
+                json.dump(results, f, indent=4)
+            print(f"File saved successfully: {filename}")
+        except Exception as e:
+            print(f"Error saving file: {e}")
 
 
 if __name__ == "__main__":
