@@ -25,8 +25,7 @@ srun python -u main.py \
 hydra.run.dir=$TMPDIR/InvalidAdjustmentSets \
 estimate_adjustment_set='true' \
 optimality='Variance' \
-wandb.enabled='true' \
-wandb.project='IAS_experiments' \
+wandb.enabled='false' \
 graph=fork \
-n_seeds=1000 \
+n_seeds=10000 \
 $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
