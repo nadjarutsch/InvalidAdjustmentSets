@@ -1,12 +1,12 @@
 #!/bin/bash
 
 #SBATCH --partition=rome
-#SBATCH --job-name=mse-optimal
+#SBATCH --job-name=mse-optimal-max-bias
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --time=90:00:00
 #SBATCH --array=1-13%13
-#SBATCH --output=slurm_mse_optimal_%A_%a.out
+#SBATCH --output=slurm_mse_optimal_max_bias_%A_%a.out
 
 module purge
 module load 2023
