@@ -61,12 +61,16 @@ def get_adjustment_set(data, graph, optimality):
     })
 
     for adjustment_set in potential_adj_sets:
-        variance, rss_A = estimate_variance(data, graph, adjustment_set)
+        est_error_var_outcome, rss_A = estimate_variance(data, graph, adjustment_set)
+        variance = est_error_var_outcome / rss_A
         if variance < o_variance:
             if optimality == "Variance":
                 bias = 999
             else:
-                bias = estimate_bias(data, graph, adjustment_set, ["O1", "O2"])
+              #  bias = estimate_bias(data, graph, adjustment_set, ["O1", "O2"])
+
+                # worst-case absolute bias
+                bias = np.sqrt(est_error_var_outcome)
         else:
             continue
         expected_mse = bias ** 2 + variance
@@ -128,7 +132,7 @@ def estimate_variance(data, graph, adjustment_set):
     df = data.shape[1] - len(adjustment_set) - 1
     est_error_var_outcome = rss_outcome / df
 
-    return est_error_var_outcome / rss_treatment, rss_treatment
+    return est_error_var_outcome, rss_treatment
 
 
 # Function to estimate the bias of the adjustment set
