@@ -28,5 +28,5 @@ optimality='MSE' \
 wandb.enabled='false' \
 graph=fork \
 n_seeds=10000 \
-n_bootstrap=200 \
+n_bootstrap=100 \
 $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
