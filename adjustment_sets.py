@@ -84,13 +84,14 @@ def get_adjustment_set(data, graph, optimality, n_bootstrap):
 
             filtered_adj_sets.append(adjustment_set)
 
-    biases = estimate_bias(data, graph, filtered_adj_sets, ["O1", "O2"], n_bootstrap)
+    if optimality != "Variance":
+        biases = estimate_bias(data, graph, filtered_adj_sets, ["O1", "O2"], n_bootstrap)
 
-    # Adding bias to each entry in properties
-    for prop in properties:
-        adjustment_set = prop['Adjustment set']
-        prop['Bias'] = biases[tuple(adjustment_set)]
-        prop['MSE'] = prop['Bias'] ** 2 + prop['Variance']
+        # Adding bias to each entry in properties
+        for prop in properties:
+            adjustment_set = prop['Adjustment set']
+            prop['Bias'] = biases[tuple(adjustment_set)]
+            prop['MSE'] = prop['Bias'] ** 2 + prop['Variance']
 
     # Find the adjustment set with the minimum MSE or Variance
     best_property = min(properties, key=lambda x: x[optimality])
