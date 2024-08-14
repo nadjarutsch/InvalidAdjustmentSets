@@ -5,6 +5,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.utils import resample
 from itertools import combinations
 from scipy.stats import bootstrap
+from collections import defaultdict
+
 
 
 
@@ -50,38 +52,45 @@ def get_adjustment_set(data, graph, optimality):
     potential_adj_sets = [set([]), set(["O1"]), set(["O2"]), set(["F1", "O2"]), set(["F2", "O2"]), set(["F1"]), set(["F2"])]
   #  potential_adj_sets = [set([]), set(["O1", "O2"]), set(["O1"]), set(["O2"]), set(["M1", "O2"]), set(["M1"])]
 
-    o_variance, _ = estimate_variance(data, graph, set(["O1", "O2"]))
+    est_error_var_outcome, rss_A = estimate_variance(data, graph, set(["O1", "O2"]))
+    o_variance = est_error_var_outcome / rss_A
+
     properties.append({
         'Adjustment set': set(["O1", "O2"]),
         'Size': len(set(["O1", "O2"])),
         'Bias': 0,
         'Variance': o_variance,
         'MSE': o_variance,
-        'RSS_A': None
+        'RSS_A': rss_A,
+        'est_error_var_outcome': est_error_var_outcome
     })
+
+    # Store the adjustment sets that should remain
+    filtered_adj_sets = [set(["O1", "O2"])]
 
     for adjustment_set in potential_adj_sets:
         est_error_var_outcome, rss_A = estimate_variance(data, graph, adjustment_set)
         variance = est_error_var_outcome / rss_A
-        if variance < o_variance:
-            if optimality == "Variance":
-                bias = 999
-            else:
-              #  bias = estimate_bias(data, graph, adjustment_set, ["O1", "O2"])
 
-                # worst-case absolute bias
-                bias = np.sqrt(est_error_var_outcome)
-        else:
-            continue
-        expected_mse = bias ** 2 + variance
         properties.append({
             'Adjustment set': adjustment_set,
             'Size': len(adjustment_set),
-            'Bias': bias,
             'Variance': variance,
-            'MSE': expected_mse,
-            'RSS_A': rss_A
+            'RSS_A': rss_A,
+            'est_error_var_outcome': est_error_var_outcome
         })
+
+        # Keep only those adjustment sets where the variance is not less than o_variance
+        if variance < o_variance:
+            filtered_adj_sets.append(adjustment_set)
+
+    biases = estimate_bias(data, graph, filtered_adj_sets, ["O1", "O2"])
+
+    # Adding bias to each entry in properties
+    for prop in properties:
+        adjustment_set = prop['Adjustment set']
+        prop['Bias'] = biases[tuple(adjustment_set)]
+        prop['MSE'] = prop['Bias'] ** 2 + prop['Variance']
 
     # Find the adjustment set with the minimum MSE or Variance
     best_property = min(properties, key=lambda x: x[optimality])
@@ -136,7 +145,32 @@ def estimate_variance(data, graph, adjustment_set):
 
 
 # Function to estimate the bias of the adjustment set
-'''def estimate_bias(data, graph, adjustment_set, unbiased_set, n_bootstrap=1000):
+def estimate_bias(data, graph, adjustment_sets, unbiased_set, n_bootstrap=1000):
+    # Create a list of variable names in the order they appear in data
+    variables = list(graph.nodes())  # Assuming the order in the graph matches the order in the data
+
+    biases = defaultdict(list)
+
+    for _ in range(n_bootstrap):
+        # Resample the data with replacement
+        bootstrap_sample = resample(data.T).T
+
+        # Estimate the treatment effect using the unbiased set
+        unbiased_treatment_effect = estimate_treatment_effect(bootstrap_sample, unbiased_set, variables)
+
+        for adj_set in adjustment_sets:
+            # Estimate the treatment effect using the adjustment set
+            adj_treatment_effect = estimate_treatment_effect(bootstrap_sample, adj_set, variables)
+
+            # Calculate the bias
+            bias = adj_treatment_effect - unbiased_treatment_effect
+            biases[tuple(adj_set)].append(bias)
+
+    # Calculate the mean bias for each key
+    mean_biases = {key: np.mean(value) for key, value in biases.items()}
+    return mean_biases
+
+'''def estimate_bias(data, graph, adjustment_set, unbiased_set, n_bootstrap=5000):
     # Create a list of variable names in the order they appear in data
     variables = list(graph.nodes())  # Assuming the order in the graph matches the order in the data
 
@@ -159,30 +193,6 @@ def estimate_variance(data, graph, adjustment_set):
     # Calculate the mean bias over all bootstrap samples
     mean_bias = np.mean(biases)
     return mean_bias'''
-
-def estimate_bias(data, graph, adjustment_set, unbiased_set, n_bootstrap=5000):
-    # Create a list of variable names in the order they appear in data
-    variables = list(graph.nodes())  # Assuming the order in the graph matches the order in the data
-
-    biases = []
-
-    for _ in range(n_bootstrap):
-        # Resample the data with replacement
-        bootstrap_sample = resample(data.T).T
-
-        # Estimate the treatment effect using the adjustment set
-        adj_treatment_effect = estimate_treatment_effect(bootstrap_sample, adjustment_set, variables)
-
-        # Estimate the treatment effect using the unbiased set
-        unbiased_treatment_effect = estimate_treatment_effect(bootstrap_sample, unbiased_set, variables)
-
-        # Calculate the bias
-        bias = adj_treatment_effect - unbiased_treatment_effect
-        biases.append(bias)
-
-    # Calculate the mean bias over all bootstrap samples
-    mean_bias = np.mean(biases)
-    return mean_bias
 
 
 def prune_variables(graph):
