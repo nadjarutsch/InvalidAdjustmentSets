@@ -1,4 +1,4 @@
-import wandb
+#import wandb
 import numpy as np
 import sympy as sp
 import hydra
@@ -133,7 +133,7 @@ def main(cfg: DictConfig) -> None:
         # Find adjustment set from the known graph and given data
         if cfg.estimate_adjustment_set:
             graph = extract_graph(cfg.graph)
-            adjustment_set, size, bias, variance, mse, rss_A = get_adjustment_set(data, graph, cfg.optimality)
+            adjustment_set, size, bias, variance, mse, rss_A = get_adjustment_set(data, graph, cfg.optimality, cfg.n_bootstrap)
         else:
             # For a fixed adjustment set, we do not need to evaluate the estimation of bias and variance
             bias, variance, size, rss_A = None, None, len(adjustment_set), None
@@ -152,29 +152,6 @@ def main(cfg: DictConfig) -> None:
             "RSS_A": rss_A
         }
 
-        if cfg.wandb.enabled:
-            # Initialize wandb run for the current seed with the experiment configuration
-            wandb.init(project=cfg.wandb.project,
-                       entity=cfg.wandb.entity,
-                       config=OmegaConf.to_container(cfg, resolve=True),
-                       reinit=True)
-
-            # Set the current seed in wandb configuration for reproducibility and tracking
-            wandb.config.update({"Seed": seed})
-            # Overwrite the adjustment set in the wandb configuration
-            wandb.config.update({"adjustment_set": adjustment_set}, allow_val_change=True)
-
-            # Log the estimated treatment effect as a summary metric for the current run
-            wandb.run.summary["Estimated Treatment Effect"] = treatment_effect
-
-            if cfg.estimate_adjustment_set:
-                wandb.run.summary["Size"] = size
-                wandb.run.summary["Estimated bias"] = bias
-                wandb.run.summary["Estimated variance"] = variance
-
-            # Finish the current wandb run before proceeding to the next seed
-            wandb.finish()
-
         results.append(result)
 
         # Check if scratch directory is available
@@ -183,10 +160,9 @@ def main(cfg: DictConfig) -> None:
             output_dir = scratch_dir
         else:
             output_dir = os.getcwd()
-        print(f"Saving files in {output_dir}")
 
         # Define the filename with the path in the chosen directory
-        filename = os.path.join(output_dir, f'results_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}_{cfg.optimality}_optimality.json')
+        filename = os.path.join(output_dir, f'results_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}_{cfg.optimality}_optimality_{cfg.n_bootstrap}_bt.json')
 
         # Save results to a JSON file
         try:

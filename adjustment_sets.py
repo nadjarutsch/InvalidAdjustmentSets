@@ -33,7 +33,7 @@ def estimate_treatment_effect(data: np.ndarray, adjustment_set: list, variables:
     return model.coef_[-1]
 
 
-def get_adjustment_set(data, graph, optimality):
+def get_adjustment_set(data, graph, optimality, n_bootstrap):
     adjustment_candidates = prune_variables(graph)
   #  scm_graph = estimate_scm(data, graph)
     
@@ -84,7 +84,7 @@ def get_adjustment_set(data, graph, optimality):
         if variance < o_variance:
             filtered_adj_sets.append(adjustment_set)
 
-    biases = estimate_bias(data, graph, filtered_adj_sets, ["O1", "O2"])
+    biases = estimate_bias(data, graph, filtered_adj_sets, ["O1", "O2"], n_bootstrap)
 
     # Adding bias to each entry in properties
     for prop in properties:
