@@ -72,16 +72,16 @@ def get_adjustment_set(data, graph, optimality, n_bootstrap):
         est_error_var_outcome, rss_A = estimate_variance(data, graph, adjustment_set)
         variance = est_error_var_outcome / rss_A
 
-        properties.append({
-            'Adjustment set': adjustment_set,
-            'Size': len(adjustment_set),
-            'Variance': variance,
-            'RSS_A': rss_A,
-            'est_error_var_outcome': est_error_var_outcome
-        })
-
         # Keep only those adjustment sets where the variance is not less than o_variance
         if variance < o_variance:
+            properties.append({
+                'Adjustment set': adjustment_set,
+                'Size': len(adjustment_set),
+                'Variance': variance,
+                'RSS_A': rss_A,
+                'est_error_var_outcome': est_error_var_outcome
+            })
+
             filtered_adj_sets.append(adjustment_set)
 
     biases = estimate_bias(data, graph, filtered_adj_sets, ["O1", "O2"], n_bootstrap)
