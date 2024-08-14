@@ -26,7 +26,7 @@ print(unique_paths)
 
 # Copy each file to the local directory
 for path in unique_paths:
-    print(f"rsync -av nrutsch@snellius.surf.nl:{path} results_fork_max_bias \n")
+    print(f"rsync -av nrutsch@snellius.surf.nl:{path} results_fork_bias_est_5000_bt-samples \n")
 #    path = path.strip()  # Remove any extra whitespace/newlines
 #    subprocess.run(['scp', path, f"{local_user}@{local_host}:{local_directory}"])
 
