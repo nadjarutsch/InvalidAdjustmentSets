@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --time=40:00:00
-#SBATCH --array=1-10%10
+#SBATCH --array=1-11%11
 #SBATCH --output=slurm_mse_optimal_%A_%a.out
 
 module purge
@@ -18,7 +18,7 @@ cd $HOME/InvalidAdjustmentSets
 source activate InvalidAdjustmentSetsSnellius
 
 # Good practice: define your directory where to save the models, and copy the job file to it
-HPARAMS_FILE=$HOME/InvalidAdjustmentSets/jobs/array_job_optimal.txt
+HPARAMS_FILE=$HOME/InvalidAdjustmentSets/jobs/array_job_mbias.txt
 
 # Run your code
 srun python -u main.py \

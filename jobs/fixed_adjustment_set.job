@@ -1,12 +1,12 @@
 #!/bin/bash
 
-#SBATCH --partition=genoa
-#SBATCH --job-name=fork-3
+#SBATCH --partition=rome
+#SBATCH --job-name=mse-optimal-fixed
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --time=20:00:00
-#SBATCH --array=1-9%9
-#SBATCH --output=slurm_fork_3_%A_%a.out
+#SBATCH --array=1-11%11
+#SBATCH --output=slurm_mse_optimal_%A_%a.out
 
 module purge
 module load 2023
@@ -18,10 +18,14 @@ cd $HOME/InvalidAdjustmentSets
 source activate InvalidAdjustmentSetsSnellius
 
 # Good practice: define your directory where to save the models, and copy the job file to it
-HPARAMS_FILE=$HOME/InvalidAdjustmentSets/jobs/array_job_fork.txt
+HPARAMS_FILE=$HOME/InvalidAdjustmentSets/jobs/array_job_mbias.txt
 
 # Run your code
 srun python -u main.py \
 hydra.run.dir=$TMPDIR/InvalidAdjustmentSets \
-adjustment_set='["O1"]' \
+estimate_adjustment_set='false' \
+adjustment_set='["O1", "O2"]' \
+wandb.enabled='false' \
+graph=m_bias \
+n_seeds=10000 \
 $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
