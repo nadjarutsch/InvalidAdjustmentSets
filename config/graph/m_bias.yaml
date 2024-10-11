@@ -4,14 +4,14 @@ variables:
   - name: O1
   - name: O2
   - name: I1
-  - name: M1
+  - name: C1
 
 edges:
-  - effect: M1
-    equation: "0.9*O1 + 0.2*I1"
+  - effect: C1
+    equation: "6*O1 + 1.33*I1"
   - effect: A
-    equation: "0.3*I1 + 0.6*O2"
+    equation: "0.55*I1 + 1.1*O2"
   - effect: Y
-    equation: "0.2*A + 0.5*O1 + 0.1*O2"
+    equation: "0.29*A + 0.71*O1 + 0.14*O2"
 
 

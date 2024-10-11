@@ -162,7 +162,7 @@ def main(cfg: DictConfig) -> None:
             output_dir = os.getcwd()
 
         # Define the filename with the path in the chosen directory
-        filename = os.path.join(output_dir, f'results_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}_{cfg.optimality}_optimality_{cfg.n_bootstrap}_bt.json')
+        filename = os.path.join(output_dir, f'results_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}_{cfg.optimality}_optimality.json')
 
         # Save results to a JSON file
         try:

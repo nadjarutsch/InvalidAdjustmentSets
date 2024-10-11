@@ -35,10 +35,8 @@ def estimate_treatment_effect(data: np.ndarray, adjustment_set: list, variables:
 
 def get_adjustment_set(data, graph, optimality, n_bootstrap):
     adjustment_candidates = prune_variables(graph)
-  #  scm_graph = estimate_scm(data, graph)
     
     potential_adj_sets = []
- #   sample_size = data.shape[1] # Number of columns/samples
 
     # Generating all combinations
     for r in range(0, len(adjustment_candidates) + 1):
@@ -49,8 +47,8 @@ def get_adjustment_set(data, graph, optimality, n_bootstrap):
     properties = []
 
     # TODO: remove manual
-    potential_adj_sets = [set([]), set(["O1"]), set(["O2"]), set(["F1", "O2"]), set(["F2", "O2"]), set(["F1"]), set(["F2"])]
-  #  potential_adj_sets = [set([]), set(["O1", "O2"]), set(["O1"]), set(["O2"]), set(["M1", "O2"]), set(["M1"])]
+  #  potential_adj_sets = [set([]), set(["O1"]), set(["O2"]), set(["F1", "O2"]), set(["F2", "O2"]), set(["F1"]), set(["F2"])]
+    potential_adj_sets = [set([]), set(["O1", "O2"]), set(["O1"]), set(["O2"]), set(["C1", "O2"]), set(["C1"])]
 
     est_error_var_outcome, rss_A = estimate_variance(data, graph, set(["O1", "O2"]))
     o_variance = est_error_var_outcome / rss_A

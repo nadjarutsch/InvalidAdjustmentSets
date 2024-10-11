@@ -5,8 +5,8 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --time=40:00:00
-#SBATCH --array=1-13%13
-#SBATCH --output=slurm_mse_optimal_200_bt_%A_%a.out
+#SBATCH --array=1-10%10
+#SBATCH --output=slurm_mse_optimal_%A_%a.out
 
 module purge
 module load 2023
@@ -26,7 +26,7 @@ hydra.run.dir=$TMPDIR/InvalidAdjustmentSets \
 estimate_adjustment_set='true' \
 optimality='MSE' \
 wandb.enabled='false' \
-graph=fork \
+graph=m_bias \
 n_seeds=10000 \
 n_bootstrap=200 \
 $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
