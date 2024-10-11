@@ -86,19 +86,19 @@ def generate_data(variables: list, cfg: DictConfig, seed: int) -> np.ndarray:
         # Lambdify your expression, but only for the variables used in this specific expression
         func = sp.lambdify([sp.symbols(var) for var in expr_variables], expression, 'numpy')
         computed_values = func(*[data[var] for var in expr_variables])
-        coefficients_list = extract_coefficients(eq['equation'], variables)
+      #  coefficients_list = extract_coefficients(eq['equation'], variables)
 
         # Only sum the squares of the coefficients, ignoring the variable names
-        var_coefficients = sum(coef ** 2 for _, coef in coefficients_list)
+      #  var_coefficients = sum(coef ** 2 for _, coef in coefficients_list)
 
         # Calculate the variance of the noise to be added
-        noise_variance = 1 - var_coefficients
+    #    noise_variance = 1 - var_coefficients
 
         # Ensure noise_variance is positive
-        noise_variance = max(noise_variance, 0)
+      #  noise_variance = max(noise_variance, 0)
 
         # Add noise to the computed values
-        noise = np.random.normal(loc=0, scale=np.sqrt(noise_variance), size=sample_size)
+        noise = np.random.normal(loc=0, scale=1, size=sample_size)
         data[effect] = computed_values + noise
 
     # Convert data dictionary to numpy array with variables in rows
