@@ -24,7 +24,7 @@ HPARAMS_FILE=$HOME/InvalidAdjustmentSets/jobs/array_job_mbias.txt
 srun python -u main.py \
 hydra.run.dir=$TMPDIR/InvalidAdjustmentSets \
 estimate_adjustment_set='false' \
-adjustment_set='["O1"]' \
+adjustment_set='["O1", "O2"]' \
 wandb.enabled='false' \
 graph=m_bias \
 n_seeds=10000 \
