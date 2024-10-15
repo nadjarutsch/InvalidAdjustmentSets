@@ -4,7 +4,7 @@
 #SBATCH --job-name=mse-optimal
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=40:00:00
+#SBATCH --time=70:00:00
 #SBATCH --array=1-11%11
 #SBATCH --output=slurm_mse_optimal_%A_%a.out
 
@@ -28,5 +28,4 @@ optimality='MSE' \
 wandb.enabled='false' \
 graph=m_bias \
 n_seeds=10000 \
-n_bootstrap=200 \
 $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
