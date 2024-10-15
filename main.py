@@ -7,6 +7,7 @@ import networkx as nx
 import json
 #from tqdm import tqdm
 import os
+import datetime
 
 from sklearn.linear_model import LinearRegression
 from adjustment_sets import get_adjustment_set, estimate_treatment_effect
@@ -161,9 +162,12 @@ def main(cfg: DictConfig) -> None:
         else:
             output_dir = os.getcwd()
 
-        # Define the filename with the path in the chosen directory
-        filename = os.path.join(output_dir, f'results_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}_{cfg.optimality}_optimality.json')
+        # Generate a unique identifier (timestamp)
+        time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
+        # Define the filename with the path in the chosen directory, adding the unique identifier
+        filename = os.path.join(output_dir,
+                                f'results_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}_{cfg.optimality}_optimality_{time}.json')
         # Save results to a JSON file
         try:
             with open(filename, 'w') as f:

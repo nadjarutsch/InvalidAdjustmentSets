@@ -1,6 +1,5 @@
 import glob
 import re
-import subprocess
 
 # Define the directory containing the .out files
 directory = "/gpfs/home5/nrutsch/InvalidAdjustmentSets/jobs/"
@@ -21,12 +20,10 @@ for file in out_files:
         paths = path_pattern.findall(content)
         unique_paths.update(paths)
 
-print(unique_paths)
+# Write the unique paths to a file
+with open("files_to_rsync.txt", 'w') as f:
+    for path in unique_paths:
+        f.write(f"{path}\n")
 
-
-# Copy each file to the local directory
-for path in unique_paths:
-    print(f"rsync -av nrutsch@snellius.surf.nl:{path} results_fork_opt_adj \n")
-#    path = path.strip()  # Remove any extra whitespace/newlines
-#    subprocess.run(['scp', path, f"{local_user}@{local_host}:{local_directory}"])
-
+# The rsync command:
+print("rsync -av --files-from=files_to_rsync.txt nrutsch@snellius.surf.nl:/ results_updated_coeffs/")
