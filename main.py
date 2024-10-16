@@ -7,7 +7,7 @@ import networkx as nx
 import json
 #from tqdm import tqdm
 import os
-import datetime
+import uuid
 
 from sklearn.linear_model import LinearRegression
 from adjustment_sets import get_adjustment_set, estimate_treatment_effect
@@ -126,6 +126,9 @@ def main(cfg: DictConfig) -> None:
     results = []
     adjustment_set = cfg.adjustment_set
 
+    # Generate a unique identifier for the filename
+    unique_id = str(uuid.uuid4())
+
     # Iterate over the number of seeds specified in the configuration
     for seed in range(0, cfg.n_seeds):
         # Generate data based on the current configuration and seed
@@ -162,12 +165,9 @@ def main(cfg: DictConfig) -> None:
         else:
             output_dir = os.getcwd()
 
-        # Generate a unique identifier (timestamp)
-        time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-
         # Define the filename with the path in the chosen directory, adding the unique identifier
         filename = os.path.join(output_dir,
-                                f'results_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}_{cfg.optimality}_optimality_{time}.json')
+                                f'results_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}_{cfg.optimality}_optimality_{unique_id}.json')
         # Save results to a JSON file
         try:
             with open(filename, 'w') as f:
