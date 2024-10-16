@@ -1,6 +1,4 @@
 #!/bin/bash
-#set -e  # Exit on any error
-#set -x  # Print commands and their arguments as they are executed
 
 #SBATCH --partition=rome
 #SBATCH --job-name=mse-optimal-fixed
@@ -9,6 +7,9 @@
 #SBATCH --time=20:00:00
 #SBATCH --array=1-11%11
 #SBATCH --output=slurm_mse_optimal_%A_%a.out
+
+set -e  # Exit on any error
+set -x  # Print commands and their arguments as they are executed
 
 module purge
 module load 2023
