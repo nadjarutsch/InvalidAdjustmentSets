@@ -20,7 +20,6 @@ source activate InvalidAdjustmentSetsSnellius
 # Good practice: define your directory where to save the models, and copy the job file to it
 HPARAMS_FILE=$HOME/InvalidAdjustmentSets/jobs/array_job_mbias.txt
 
-# Run your code
 srun python -u main.py \
   --hydra.run.dir="$TMPDIR/InvalidAdjustmentSets" \
   --estimate_adjustment_set=false \
