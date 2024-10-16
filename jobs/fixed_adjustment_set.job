@@ -7,7 +7,6 @@
 #SBATCH --time=20:00:00
 #SBATCH --array=1-11%11
 #SBATCH --output=slurm_mse_optimal_fixed_%A_%a.out
-#SBATCH --error=slurm_mse_optimal_fixed_%A_%a.err
 
 module purge
 module load 2023
