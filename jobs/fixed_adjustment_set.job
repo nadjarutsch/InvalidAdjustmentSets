@@ -1,6 +1,6 @@
 #!/bin/bash
-set -e  # Exit on any error
-set -x  # Print commands and their arguments as they are executed
+#set -e  # Exit on any error
+#set -x  # Print commands and their arguments as they are executed
 
 #SBATCH --partition=rome
 #SBATCH --job-name=mse-optimal-fixed
