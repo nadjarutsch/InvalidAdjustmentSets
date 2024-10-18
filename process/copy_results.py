@@ -21,7 +21,7 @@ for file in out_files:
         paths = path_pattern.findall(content)
         unique_paths.update(paths)
 
-print(out_files)
+print(unique_paths)
 
 # Write the unique paths to a file
 with open("files_to_rsync.txt", 'w') as f:
