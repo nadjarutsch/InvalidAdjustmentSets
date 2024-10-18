@@ -11,7 +11,8 @@ out_files = glob.glob(directory + "*.out")
 unique_paths = set()
 
 # Define the regex pattern
-path_pattern = re.compile(r'/gpfs/scratch\d+/nodespecific/tcn\d+/nrutsch\.\d+/InvalidAdjustmentSets/results_\d+_estimated_\w+\.json')
+path_pattern = re.compile(r'/gpfs/scratch\d+/nodespecific/tcn\d+/nrutsch\.\d+/InvalidAdjustmentSets/results_\d+_estimated_\w+_\w+_optimality_\w+\.json'
+)
 
 # Read each .out file and find unique paths
 for file in out_files:
