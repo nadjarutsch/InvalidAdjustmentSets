@@ -47,8 +47,8 @@ def get_adjustment_set(data, graph, optimality, n_bootstrap):
     properties = []
 
     # TODO: remove manual
-  #  potential_adj_sets = [set([]), set(["O1"]), set(["O2"]), set(["F1", "O2"]), set(["F2", "O2"]), set(["F1"]), set(["F2"])]
-    potential_adj_sets = [set([]), set(["O1", "O2"]), set(["O1"]), set(["O2"]), set(["C1", "O2"]), set(["C1"])]
+    potential_adj_sets = [set([]), set(["O1"]), set(["O2"]), set(["F1", "O2"]), set(["F2", "O2"]), set(["F1"]), set(["F2"])]
+  #  potential_adj_sets = [set([]), set(["O1", "O2"]), set(["O1"]), set(["O2"]), set(["C1", "O2"]), set(["C1"])]
 
     est_error_var_outcome, rss_A = estimate_variance(data, graph, set(["O1", "O2"]))
     o_variance = est_error_var_outcome / rss_A
