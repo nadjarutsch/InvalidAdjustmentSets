@@ -1,3 +1,8 @@
+sample_size=10
+sample_size=20
+sample_size=30
+sample_size=40
+sample_size=50
 sample_size=100
 sample_size=200
 sample_size=300
@@ -7,3 +12,4 @@ sample_size=600
 sample_size=700
 sample_size=800
 sample_size=900
+sample_size=1000
