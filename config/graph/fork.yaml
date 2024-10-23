@@ -12,4 +12,4 @@ edges:
   - effect: A
     equation: "-70*F1 + 10*F2 + 70*O2"
   - effect: Y
-    equation: "0.14*A + 0.68*O1 + 0.14*O2"
+    equation: "0.4*A + 0.68*O1 + 0.14*O2"
