@@ -24,7 +24,7 @@ HPARAMS_FILE=$HOME/InvalidAdjustmentSets/jobs/array_job_fork.txt
 srun python -u main.py \
 hydra.run.dir=$TMPDIR/InvalidAdjustmentSets \
 estimate_adjustment_set='false' \
-adjustment_set='["O1"]' \
+adjustment_set='["F1"]' \
 wandb.enabled='false' \
 graph=fork \
 n_seeds=10000 \
