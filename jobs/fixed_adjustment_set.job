@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --partition=genoa
+#SBATCH --partition=rome
 #SBATCH --job-name=mse-optimal-fixed
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
