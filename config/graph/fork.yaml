@@ -10,6 +10,6 @@ edges:
   - effect: O1
     equation: "10*F2 + 0.5*F1"
   - effect: A
-    equation: "-0.5*F1 + 0.1*F2 + 7*O2"
+    equation: "-0.5*F1 + 0.1*F2 + 50*O2"
   - effect: Y
     equation: "3*A + 5*O1 + 0.15*O2"
