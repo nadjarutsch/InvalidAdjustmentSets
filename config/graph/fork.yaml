@@ -8,8 +8,8 @@ variables:
 
 edges:
   - effect: O1
-    equation: "1*F2 + 1*F1"
+    equation: "2*F2 + 2*F1"
   - effect: A
-    equation: "-1*F1 + 0.1*F2 + 10*O2"
+    equation: "-1*F1 + 0.1*F2 + 40*O2"
   - effect: Y
-    equation: "3*A + 5*O1 + 0.7*O2"
+    equation: "3*A + 5*O1 + 0.5*O2"
