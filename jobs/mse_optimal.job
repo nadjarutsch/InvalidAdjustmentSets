@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH --partition=rome
+#SBATCH --partition=genoa
 #SBATCH --job-name=mse-optimal
-#SBATCH --ntasks=15
+#SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --time=50:00:00
 #SBATCH --array=1-15%15
