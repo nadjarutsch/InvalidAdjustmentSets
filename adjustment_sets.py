@@ -76,6 +76,7 @@ def get_adjustment_set(data, graph, optimality, n_bootstrap):
                 'Adjustment set': adjustment_set,
                 'Size': len(adjustment_set),
                 'Bias': None,
+                'MSE': None,
                 'Variance': variance,
                 'RSS_A': rss_A,
                 'est_error_var_outcome': est_error_var_outcome
