@@ -2,7 +2,7 @@
 
 #SBATCH --partition=rome
 #SBATCH --job-name=mse-optimal
-#SBATCH --ntasks=1
+#SBATCH --ntasks=15
 #SBATCH --cpus-per-task=1
 #SBATCH --time=50:00:00
 #SBATCH --array=15-15%15
@@ -12,12 +12,9 @@ module purge
 module load 2023
 module load Anaconda3/2023.07-2
 
-# Your job starts in the directory where you call sbatch
 cd $HOME/InvalidAdjustmentSets
-# Activate your environment
 source activate InvalidAdjustmentSetsSnellius
 
-# Good practice: define your directory where to save the models, and copy the job file to it
 HPARAMS_FILE=$HOME/InvalidAdjustmentSets/jobs/array_job_fork.txt
 
 # Run your code
