@@ -153,7 +153,8 @@ def main(cfg: DictConfig) -> None:
             "Sample size": cfg.sample_size,
             "Bias_est": bias,
             "Variance_est": variance,
-            "RSS_A": rss_A
+            "RSS_A": rss_A,
+            "Optimality": cfg.optimality,
         }
 
         results.append(result)
