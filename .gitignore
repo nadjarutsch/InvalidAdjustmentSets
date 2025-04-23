@@ -1,0 +1,17 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+
+# Hydra output 
+outputs/
+multirun/
+*.log
+
+# VS Code project settings
+.vscode/
+
+# Jupyter Notebook checkpoints 
+.ipynb_checkpoints/
+
+# macOS file clutter
+.DS_Store
