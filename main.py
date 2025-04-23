@@ -116,7 +116,7 @@ def main(cfg: DictConfig) -> None:
         # generate unique filename
         output_dir = os.getcwd()
         unique_id = str(uuid.uuid4())
-        filename = os.path.join(output_dir, f'results_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}_{cfg.optimality}_optimality_{unique_id}.json')
+        filename = os.path.join(output_dir, f'results_{cfg.graph.id}_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}_{cfg.optimality}_optimality_{unique_id}.json')
        
         # save results to JSON file
         try:

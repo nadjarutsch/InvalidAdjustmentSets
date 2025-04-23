@@ -15,14 +15,13 @@ module load Anaconda3/2023.07-2
 cd $HOME/InvalidAdjustmentSets
 source activate InvalidAdjustmentSetsSnellius
 
-HPARAMS_FILE=$HOME/InvalidAdjustmentSets/jobs/array_job_fork.txt
+HPARAMS_FILE=$HOME/InvalidAdjustmentSets/jobs/array_job_m1.txt
 
 # Run your code
 srun python -u main.py \
 hydra.run.dir=$TMPDIR/InvalidAdjustmentSets \
 estimate_adjustment_set='true' \
 optimality='MSE' \
-wandb.enabled='false' \
-graph=fork \
+graph=m1 \
 n_seeds=10000 \
 $(head -$SLURM_ARRAY_TASK_ID $HPARAMS_FILE | tail -1)
