@@ -33,22 +33,22 @@ def estimate_treatment_effect(data: np.ndarray, adjustment_set: list, variables:
     return model.coef_[-1]
 
 
-def get_adjustment_set(data, graph, optimality, n_bootstrap):
-    adjustment_candidates = prune_variables(graph)
-    
+def get_adjustment_set(graph_id, data, graph, optimality, n_bootstrap, variables):    
     potential_adj_sets = []
-
-    # Generating all combinations
-    for r in range(0, len(adjustment_candidates) + 1):
-        all_combinations = combinations(adjustment_candidates, r)
-        potential_adj_sets.extend([set(combo) for combo in all_combinations])
-        
-    potential_adj_sets = prune_adj_sets(potential_adj_sets, graph)
     properties = []
 
-    # TODO: remove manual
-    potential_adj_sets = [set([]), set(["O1"]), set(["O2"]), set(["F1", "O2"]), set(["F2", "O2"]), set(["F1"]), set(["F2"])]
-  #  potential_adj_sets = [set([]), set(["O1", "O2"]), set(["O1"]), set(["O2"]), set(["C1", "O2"]), set(["C1"])]
+    # Generating all combinations
+    for r in range(0, len(variables) + 1):
+        all_combinations = combinations(variables, r)
+        potential_adj_sets.extend([set(combo) for combo in all_combinations])
+
+    # search space excluding asymptotically optimal adjustment set O
+    if graph_id == "m1":
+        potential_adj_sets = [set([]), set(["O1"]), set(["O2"]), set(["W1", "O2"]), set(["W2", "O2"]), set(["W1"]), set(["W2"]), set(["W1", "W2"])]
+    elif graph_id == "m2":
+        potential_adj_sets = [set([]), set(["O1"]), set(["O2"]), set(["C1", "O2"]), set(["C1"])]
+    else:
+        raise ValueError(f"Unknown graph_id: {graph_id}")
 
     est_error_var_outcome, rss_A = estimate_variance(data, graph, set(["O1", "O2"]))
     o_variance = est_error_var_outcome / rss_A
@@ -74,7 +74,6 @@ def get_adjustment_set(data, graph, optimality, n_bootstrap):
         if variance < o_variance:
             properties.append({
                 'Adjustment set': adjustment_set,
-                'Size': len(adjustment_set),
                 'Bias': None,
                 'MSE': None,
                 'Variance': variance,
@@ -94,9 +93,9 @@ def get_adjustment_set(data, graph, optimality, n_bootstrap):
             prop['MSE'] = prop['Bias'] ** 2 + prop['Variance']
 
     # Find the adjustment set with the minimum MSE or Variance
-    best_property = min(properties, key=lambda x: x[optimality])
+    best_set = min(properties, key=lambda x: x[optimality])
 
-    return best_property['Adjustment set'], best_property['Size'], best_property['Bias'], best_property['Variance'], best_property['MSE'], best_property['RSS_A']
+    return best_set['Adjustment set'], best_set['Bias'], best_set['Variance'], best_set['MSE'], best_set['RSS_A']
 
 
 def estimate_variance(data, graph, adjustment_set):
@@ -170,37 +169,3 @@ def estimate_bias(data, graph, adjustment_sets, unbiased_set, n_bootstrap=1000):
     # Calculate the mean bias for each key
     mean_biases = {key: np.mean(value) for key, value in biases.items()}
     return mean_biases
-
-'''def estimate_bias(data, graph, adjustment_set, unbiased_set, n_bootstrap=5000):
-    # Create a list of variable names in the order they appear in data
-    variables = list(graph.nodes())  # Assuming the order in the graph matches the order in the data
-
-    biases = []
-
-    for _ in range(n_bootstrap):
-        # Resample the data with replacement
-        bootstrap_sample = resample(data.T).T
-
-        # Estimate the treatment effect using the adjustment set
-        adj_treatment_effect = estimate_treatment_effect(bootstrap_sample, adjustment_set, variables)
-
-        # Estimate the treatment effect using the unbiased set
-        unbiased_treatment_effect = estimate_treatment_effect(bootstrap_sample, unbiased_set, variables)
-
-        # Calculate the bias
-        bias = adj_treatment_effect - unbiased_treatment_effect
-        biases.append(bias)
-
-    # Calculate the mean bias over all bootstrap samples
-    mean_bias = np.mean(biases)
-    return mean_bias'''
-
-
-def prune_variables(graph):
-    pruned_variables = list(graph.nodes())  # TODO: implement graphical criterion
-    return pruned_variables
-
-
-def prune_adj_sets(potential_adj_sets, graph):  # TODO: implement graphical criterion
-    return potential_adj_sets
-

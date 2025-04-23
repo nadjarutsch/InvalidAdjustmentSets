@@ -1,12 +1,8 @@
 defaults:
-  - graph: fork
+  - graph: m1
 
-wandb:
-  enabled: false
-  project: IAS_examples
-  entity: nadjarutsch
 sample_size: 50
-n_seeds: 10000
+n_seeds: 1
 n_bootstrap: 1000
 adjustment_set:
   - O1

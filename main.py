@@ -1,34 +1,33 @@
-#import wandb
 import numpy as np
 import sympy as sp
 import hydra
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 import networkx as nx
 import json
-#from tqdm import tqdm
 import os
 import uuid
-
 from sklearn.linear_model import LinearRegression
+
 from adjustment_sets import get_adjustment_set, estimate_treatment_effect
+
 
 def extract_graph(graph_config: DictConfig) -> nx.DiGraph:
     """
     Extracts a directed networkx DiGraph from the provided configuration.
 
     Parameters:
-        graph_config (DictConfig): The configuration object containing variables and edges information.
+        graph_config (DictConfig): The configuration object containing variables and structural equations.
 
     Returns:
         nx.DiGraph: A directed graph representing the causal relationships among variables.
     """
     graph = nx.DiGraph()
 
-    # Add nodes to the graph
+    # add nodes
     for variable in graph_config.variables:
         graph.add_node(variable.name)
 
-    # Add edges to the graph
+    # add edges
     for edge in graph_config.edges:
         effect = edge.effect
         equation_vars = [var.name for var in graph_config.variables if var.name in edge.equation]
@@ -38,35 +37,6 @@ def extract_graph(graph_config: DictConfig) -> nx.DiGraph:
     return graph
 
 
-def extract_coefficients(equation: str, variables: list) -> list:
-    """
-    Extracts coefficients and their associated variables from a symbolic equation.
-
-    Parameters:
-    equation (str): The equation in string format.
-    variables (list): List of variable names involved in the equation.
-
-    Returns:
-    list: A list of tuples, each containing a variable name and its coefficient in the equation.
-    """
-    # Convert the equation string to a sympy expression
-    expr = sp.sympify(equation)
-
-    # List to hold tuples of variable names and their coefficients
-    coefficients = []
-
-    # Iterate through each term in the expression
-    for term in expr.as_ordered_terms():
-        # For each variable, extract its coefficient and add to the list
-        for var in variables:
-            symbol = sp.Symbol(var)
-            coef = term.coeff(symbol)
-            if coef != 0:
-                coefficients.append((var, float(coef.evalf())))
-
-    return coefficients
-
-
 def generate_data(variables: list, cfg: DictConfig, seed: int) -> np.ndarray:
 
     equations = cfg.graph.get('edges', [])
@@ -74,35 +44,23 @@ def generate_data(variables: list, cfg: DictConfig, seed: int) -> np.ndarray:
 
     data = {}
 
-    # Generate standard normal values for all variables first
+    # generate Gaussian noise epsilon_i for all variables V_i in V
     np.random.seed(seed)
     for var in variables:
         data[var] = np.random.normal(loc=0, scale=1, size=sample_size)
 
     for eq in equations:
+        # generate function from each structural equation, 
+        # important: order of equations in config must be causal order
         effect = eq['effect']
         expression = sp.sympify(eq['equation'], locals={var: sp.symbols(var) for var in variables})
-        # Lambdify your expression
         expr_variables = [str(var) for var in expression.free_symbols]
-        # Lambdify your expression, but only for the variables used in this specific expression
         func = sp.lambdify([sp.symbols(var) for var in expr_variables], expression, 'numpy')
+        
+        # compute the values of the structural equation and add to the Gaussian noise
         computed_values = func(*[data[var] for var in expr_variables])
-      #  coefficients_list = extract_coefficients(eq['equation'], variables)
+        data[effect] += computed_values
 
-        # Only sum the squares of the coefficients, ignoring the variable names
-      #  var_coefficients = sum(coef ** 2 for _, coef in coefficients_list)
-
-        # Calculate the variance of the noise to be added
-    #    noise_variance = 1 - var_coefficients
-
-        # Ensure noise_variance is positive
-      #  noise_variance = max(noise_variance, 0)
-
-        # Add noise to the computed values
-        noise = np.random.normal(loc=0, scale=1, size=sample_size)
-        data[effect] = computed_values + noise
-
-    # Convert data dictionary to numpy array with variables in rows
     data_array = np.array([data[var] for var in variables])
 
     return data_array
@@ -111,38 +69,33 @@ def generate_data(variables: list, cfg: DictConfig, seed: int) -> np.ndarray:
 @hydra.main(config_path='./config', config_name='config')
 def main(cfg: DictConfig) -> None:
     """
-    Main function to run experiments based on a Hydra configuration.
+    Run experiments based on a Hydra configuration.
 
-    For each seed specified in the configuration, this function initializes a Weights & Biases (wandb) run,
-    generates data, estimates the treatment effect, and logs the seed and estimated treatment effect to wandb.
+    For each seed, this function generates data and estimates the treatment effect, either with a fixed adjustment set
+    or by estimating the MSE-optimal or variance-optimal adjustment set. The results are saved to a JSON file.
 
     Parameters:
-    cfg (DictConfig): The Hydra configuration object containing experimental settings, including the number of seeds,
-                      wandb project and entity information, and other necessary configuration details.
+        cfg (DictConfig): The Hydra configuration object containing experimental settings, including the number of seeds,
+                        the sample size, the graph, whether to estimate the adjustment set, a fixed adjustment set (only
+                        used if not estimated), and the optimality criterion.
     """
 
-    # Extract variable names and adjustment set from the configuration
+    # extract variable names and adjustment set from Hydra config
     variables = [var['name'] for var in cfg.graph['variables']]
     results = []
     adjustment_set = cfg.adjustment_set
 
-    # Generate a unique identifier for the filename
-    unique_id = str(uuid.uuid4())
-
-    # Iterate over the number of seeds specified in the configuration
     for seed in range(0, cfg.n_seeds):
-        # Generate data based on the current configuration and seed
         data = generate_data(variables, cfg, seed)
 
-        # Find adjustment set from the known graph and given data
+        # estimate MSE-optimal adjustment set
         if cfg.estimate_adjustment_set:
             graph = extract_graph(cfg.graph)
-            adjustment_set, size, bias, variance, mse, rss_A = get_adjustment_set(data, graph, cfg.optimality, cfg.n_bootstrap)
+            adjustment_set, bias_est, variance_est, mse_est, rss_A = get_adjustment_set(cfg.graph.id, data, graph, cfg.optimality, cfg.n_bootstrap, variables)
         else:
-            # For a fixed adjustment set, we do not need to evaluate the estimation of bias and variance
-            bias, variance, size, rss_A = None, None, len(adjustment_set), None
+            # for a fixed adjustment set, we do not need to evaluate the estimation of bias and variance
+            bias_est, variance_est, rss_A, mse_est = None, None, None, None
 
-        # Estimate the treatment effect using the generated data and specified adjustment set
         treatment_effect = estimate_treatment_effect(data, adjustment_set, variables)
 
         result = {
@@ -151,25 +104,21 @@ def main(cfg: DictConfig) -> None:
             "Adjustment Set": list(adjustment_set),
             "Estimated": cfg.estimate_adjustment_set,
             "Sample size": cfg.sample_size,
-            "Bias_est": bias,
-            "Variance_est": variance,
+            "Bias_est": bias_est,
+            "Variance_est": variance_est,
+            "MSE_est": mse_est,
             "RSS_A": rss_A,
             "Optimality": cfg.optimality,
         }
 
         results.append(result)
 
-        # Check if scratch directory is available
-        scratch_dir = '/scratch-local/nrutsch'
-        if os.path.exists(scratch_dir) and os.access(scratch_dir, os.W_OK):
-            output_dir = scratch_dir
-        else:
-            output_dir = os.getcwd()
-
-        # Define the filename with the path in the chosen directory, adding the unique identifier
-        filename = os.path.join(output_dir,
-                                f'results_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}_{cfg.optimality}_optimality_{unique_id}.json')
-        # Save results to a JSON file
+        # generate unique filename
+        output_dir = os.getcwd()
+        unique_id = str(uuid.uuid4())
+        filename = os.path.join(output_dir, f'results_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}_{cfg.optimality}_optimality_{unique_id}.json')
+       
+        # save results to JSON file
         try:
             with open(filename, 'w') as f:
                 json.dump(results, f, indent=4)

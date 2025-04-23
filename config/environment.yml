@@ -1,0 +1,12 @@
+name: InvalidAdjustmentSets
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+    - hydra-core
+  - numpy
+  - sympy
+  - networkx
+  - scikit-learn

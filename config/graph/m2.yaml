@@ -1,16 +1,18 @@
+id: m2
+
 variables:
   - name: A
   - name: Y
   - name: O1
   - name: O2
-  - name: I1
+  - name: W1
   - name: C1
 
 edges:
   - effect: C1
-    equation: "6*O1 + 1.33*I1"
+    equation: "6*O1 + 1.33*W1"
   - effect: A
-    equation: "0.55*I1 + 1.1*O2"
+    equation: "0.55*W1 + 1.1*O2"
   - effect: Y
     equation: "0.29*A + 0.71*O1 + 0.14*O2"
 
