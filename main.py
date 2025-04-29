@@ -85,6 +85,11 @@ def main(cfg: DictConfig) -> None:
     results = []
     adjustment_set = cfg.adjustment_set
 
+    # generate unique filename
+    output_dir = os.getcwd()
+    unique_id = str(uuid.uuid4())
+    filename = os.path.join(output_dir, f'results_{cfg.graph.id}_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}_{cfg.optimality}_optimality_{unique_id}.json')
+
     for seed in range(0, cfg.n_seeds):
         data = generate_data(variables, cfg, seed)
 
@@ -112,11 +117,6 @@ def main(cfg: DictConfig) -> None:
         }
 
         results.append(result)
-
-        # generate unique filename
-        output_dir = os.getcwd()
-        unique_id = str(uuid.uuid4())
-        filename = os.path.join(output_dir, f'results_{cfg.graph.id}_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}_{cfg.optimality}_optimality_{unique_id}.json')
        
         # save results to JSON file
         try:
