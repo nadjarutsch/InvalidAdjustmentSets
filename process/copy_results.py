@@ -11,7 +11,7 @@ out_files = glob.glob(directory + "*.out")
 unique_paths = set()
 
 # Define the regex pattern
-path_pattern = re.compile(r'\/gpfs\/scratch\d+\/nodespecific\/tcn\d+\/nrutsch\.\d+\/InvalidAdjustmentSets\/results_m1_\d+_estimated_\w+_\w+_optimality_.+\.json'
+path_pattern = re.compile(r'\/gpfs\/scratch\d+\/nodespecific\/tcn\d+\/nrutsch\.\d+\/InvalidAdjustmentSets\/results_m2_\d+_estimated_\w+_\w+_optimality_.+\.json'
 )
 
 # Read each .out file and find unique paths
@@ -29,4 +29,4 @@ with open("files_to_rsync.txt", 'w') as f:
         f.write(f"{path}\n")
 
 # The rsync command:
-print("rsync -av --files-from=files_to_rsync.txt nrutsch@snellius.surf.nl:/ results_updated_coeffs/")
+print("rsync -av --files-from=files_to_rsync.txt nrutsch@snellius.surf.nl:/ results_m2/")
