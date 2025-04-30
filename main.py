@@ -6,7 +6,6 @@ import networkx as nx
 import json
 import os
 import uuid
-from sklearn.linear_model import LinearRegression
 
 from adjustment_sets import get_adjustment_set, estimate_treatment_effect
 
@@ -50,8 +49,7 @@ def generate_data(variables: list, cfg: DictConfig, seed: int) -> np.ndarray:
         data[var] = np.random.normal(loc=0, scale=1, size=sample_size)
 
     for eq in equations:
-        # generate function from each structural equation, 
-        # important: order of equations in config must be causal order
+        # generate function from each structural equation, important: order of equations in config must be causal order
         effect = eq['effect']
         expression = sp.sympify(eq['equation'], locals={var: sp.symbols(var) for var in variables})
         expr_variables = [str(var) for var in expression.free_symbols]
@@ -93,27 +91,27 @@ def main(cfg: DictConfig) -> None:
     for seed in range(0, cfg.n_seeds):
         data = generate_data(variables, cfg, seed)
 
-        # estimate MSE-optimal adjustment set
+        # estimate MSE-optimal or variance-optimal adjustment set
         if cfg.estimate_adjustment_set:
             graph = extract_graph(cfg.graph)
             adjustment_set, bias_est, variance_est, mse_est, rss_A = get_adjustment_set(cfg.graph.id, data, graph, cfg.optimality, cfg.n_bootstrap, variables)
         else:
-            # for a fixed adjustment set, we do not need to evaluate the estimation of bias and variance
+            # for a fixed adjustment set, we do not need to estimate bias and variance
             bias_est, variance_est, rss_A, mse_est = None, None, None, None
 
-        treatment_effect = estimate_treatment_effect(data, adjustment_set, variables)
+        treatment_effect_est = estimate_treatment_effect(data, adjustment_set, variables)
 
         result = {
             "Seed": seed,
-            "Treatment Effect": treatment_effect,
+            "Treatment Effect": treatment_effect_est,
             "Adjustment Set": list(adjustment_set),
-            "Estimated": cfg.estimate_adjustment_set,
+            "Estimated": cfg.estimate_adjustment_set,   # whether the adjustment set was estimated or not
             "Sample size": cfg.sample_size,
             "Bias_est": bias_est,
             "Variance_est": variance_est,
             "MSE_est": mse_est,
             "RSS_A": rss_A,
-            "Optimality": cfg.optimality,
+            "Optimality": cfg.optimality,   # optimality criterion used
         }
 
         results.append(result)
