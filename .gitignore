@@ -10,8 +10,13 @@ multirun/
 # VS Code project settings
 .vscode/
 
-# Jupyter Notebook checkpoints 
+# Jupyter Notebook files
+*.ipynb
 .ipynb_checkpoints/
 
 # macOS file clutter
 .DS_Store
+
+# Local directories
+process/
+jobs/
