@@ -1,46 +1,68 @@
 import numpy as np
 import networkx as nx
 from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import StandardScaler
 from sklearn.utils import resample
 from itertools import combinations
-from scipy.stats import bootstrap
 from collections import defaultdict
 
 
+def estimate_treatment_effect(data: np.ndarray, adjustment_set: list[str], variables: list[str]) -> float:
+    """
+    Estimates the average treatment effect of the treatment A on the outcome Y with ordinary least-squares
+    (OLS), conditional on the adjustment set.
 
+    Parameters:
+    - data: Data array of shape (len(variables), sample_size).
+    - adjustment_set: List of variables that are included in the adjustment set.
+    - variables: List of all variables, order corresponding to the indices in the data array.
 
-def estimate_treatment_effect(data: np.ndarray, adjustment_set: list, variables: list) -> float:
-    # Map variable names to indices if adjustment_set contains names
+    Returns:
+    - float: estimated average treatment effect
+    """
+    # map variable names to indices 
     variable_indices = {name: i for i, name in enumerate(variables)}
     adjustment_indices = [variable_indices[name] for name in adjustment_set]
 
-    # Extracting Y and A from the data
-    Y = data[variable_indices['Y'], :].T  # Assuming Y is the outcome variable
-    A = data[variable_indices['A'], :].T  # Assuming 'A' is the treatment variable
+    Y = data[variable_indices['Y'], :].T  # outcome variable
+    A = data[variable_indices['A'], :].T  # treatment variable
 
-    # Prepare covariates X
+    # prepare covariates X
     if adjustment_indices:
         X = np.hstack([data[idx, :].reshape(-1, 1) for idx in adjustment_indices])
         X = np.column_stack((X, A))
     else:
         X = A.reshape(-1, 1)
 
-    # Performing linear regression
+    # estimate ATE
     model = LinearRegression().fit(X, Y)
-
-    # Returning the coefficient of A (treatment effect)
+    
     return model.coef_[-1]
 
 
-def get_adjustment_set(graph_id, data, graph, optimality, n_bootstrap, variables):    
+def get_adjustment_set(
+    graph_id: str,
+    data: np.ndarray,
+    graph: nx.DiGraph,
+    optimality: str,
+    n_bootstrap: int,
+    variables: list[str]
+) -> tuple[set[str], float | None, float, float, float]:
+    """
+    Selects the optimal adjustment set based on the specified optimality criterion (Variance or MSE).
+
+    Parameters:
+    - graph_id: Identifier for the causal graph, determines candidate adjustment sets.
+    - data: Data array of shape (len(variables), sample_size).
+    - graph: NetworkX graph representing the causal structure.
+    - optimality: Selection criterion ("Variance" or "MSE").
+    - n_bootstrap: Number of bootstrap replications for bias estimation.
+    - variables: List of all variable names, consistent with the data ordering.
+
+    Returns:
+    - tuple: (best adjustment set, estimated bias, estimated variance, estimated MSE, treatment RSS)
+    """  
     potential_adj_sets = []
     properties = []
-
-    # Generating all combinations
-    for r in range(0, len(variables) + 1):
-        all_combinations = combinations(variables, r)
-        potential_adj_sets.extend([set(combo) for combo in all_combinations])
 
     # search space excluding asymptotically optimal adjustment set O
     if graph_id == "m1":
@@ -50,6 +72,7 @@ def get_adjustment_set(graph_id, data, graph, optimality, n_bootstrap, variables
     else:
         raise ValueError(f"Unknown graph_id: {graph_id}")
 
+    # estimate variance of the asymptotically optimal adjustment set
     est_error_var_outcome, rss_A = estimate_variance(data, graph, set(["O1", "O2"]))
     o_variance = est_error_var_outcome / rss_A
 
@@ -63,14 +86,16 @@ def get_adjustment_set(graph_id, data, graph, optimality, n_bootstrap, variables
         'est_error_var_outcome': est_error_var_outcome
     })
 
-    # Store the adjustment sets that should remain
+    # store adjustment sets for which variance is less or equal than the variance of the 
+    # asymptotically optimal adjustment set (o_variance)
     filtered_adj_sets = [set(["O1", "O2"])]
 
     for adjustment_set in potential_adj_sets:
+        # estimate variance of potential adjustment set
         est_error_var_outcome, rss_A = estimate_variance(data, graph, adjustment_set)
         variance = est_error_var_outcome / rss_A
 
-        # Keep only those adjustment sets where the variance is not less than o_variance
+        # keep only adjustment sets with smaller variance
         if variance < o_variance:
             properties.append({
                 'Adjustment set': adjustment_set,
@@ -83,89 +108,119 @@ def get_adjustment_set(graph_id, data, graph, optimality, n_bootstrap, variables
 
             filtered_adj_sets.append(adjustment_set)
 
+    # bias estimation not needed for variance-optimal adjustment set
     if optimality != "Variance":
+        # estimate bias for each remaining adjustment set
         biases = estimate_bias(data, graph, filtered_adj_sets, ["O1", "O2"], n_bootstrap)
 
-        # Adding bias to each entry in properties
         for prop in properties:
             adjustment_set = prop['Adjustment set']
             prop['Bias'] = biases[tuple(adjustment_set)]
             prop['MSE'] = prop['Bias'] ** 2 + prop['Variance']
 
-    # Find the adjustment set with the minimum MSE or Variance
+    # choose adjustment set with the minimum MSE or Variance
     best_set = min(properties, key=lambda x: x[optimality])
 
     return best_set['Adjustment set'], best_set['Bias'], best_set['Variance'], best_set['MSE'], best_set['RSS_A']
 
 
-def estimate_variance(data, graph, adjustment_set):
-    # Extract column indices from graph nodes
+def estimate_variance(
+    data: np.ndarray,
+    graph: nx.DiGraph,
+    adjustment_set: set[str]
+) -> tuple[float, float]:
+    """
+    Estimates the error variance of the outcome and the residual sum of squares (RSS) of the treatment,
+    given a specific adjustment set. From these values, the variance of the treatment effect estimator 
+    can be estimated.
+
+    Parameters:
+    - data: Data array of shape (len(variables), sample_size).
+    - graph: NetworkX graph representing the causal structure.
+    - adjustment_set: Set of variables to condition on.
+
+    Returns:
+    - tuple: (estimated error variance of outcome, residual sum of squares of treatment)
+    """
+    # extract data indices from graph nodes
     nodes = list(graph.nodes())
     treatment_index = nodes.index("A")
     outcome_index = nodes.index("Y")
-
-    # Define the adjustment variables
     adjustment_indices = [nodes.index(node) for node in adjustment_set]
 
-    # Prepare data
-    A = data[treatment_index, :].reshape(-1, 1)  # Treatment variable (transposed for samples as rows)
-    Y = data[outcome_index, :].reshape(-1, 1)  # Outcome variable (transposed for samples as rows)
+    # prepare data
+    A = data[treatment_index, :].reshape(-1, 1)  # treatment variable (transposed for samples as rows)
+    Y = data[outcome_index, :].reshape(-1, 1)  # outcome variable (transposed for samples as rows)
 
     if adjustment_indices:
-        # Create the adjustment matrix X
-        X_adjust = data[adjustment_indices, :].T  # Adjustment variables (transposed for samples as rows)
-
-        # Fit linear regression model for the treatment
+        # regress the treatment on the adjustment set
+        X_adjust = data[adjustment_indices, :].T
         reg_treatment = LinearRegression().fit(X_adjust, A)
 
-        # Add the treatment variable A to the adjustment matrix X
+        # regress the outcome on the treatment and the adjustment set
         X_adjust_with_treatment = np.column_stack((X_adjust, A))
-
-        # Fit linear regression model for the outcome
         reg_outcome = LinearRegression().fit(X_adjust_with_treatment, Y)
 
-        # Calculate residuals
+        # calculate residuals
         residuals_treatment = A - reg_treatment.predict(X_adjust)
         residuals_outcome = Y - reg_outcome.predict(X_adjust_with_treatment)
     else:
-        # If no adjustment variables, just use the mean
+        # if the adjustment set is the empty set, we use the mean
         residuals_treatment = A - np.mean(A)
         residuals_outcome = Y - np.mean(Y)
 
-    # Calculate RSS
+    # calculate the treatment RSS
     rss_treatment = np.sum(residuals_treatment ** 2)
+    
+    # estimate the error variance for the outcome from the RSS
     rss_outcome = np.sum(residuals_outcome ** 2)
-
-    # Calculate the estimated error variance for the outcome
-    # If there are no adjustment variables, adjust degrees of freedom accordingly
     df = data.shape[1] - len(adjustment_set) - 1
     est_error_var_outcome = rss_outcome / df
 
     return est_error_var_outcome, rss_treatment
 
 
-# Function to estimate the bias of the adjustment set
-def estimate_bias(data, graph, adjustment_sets, unbiased_set, n_bootstrap=1000):
-    # Create a list of variable names in the order they appear in data
-    variables = list(graph.nodes())  # Assuming the order in the graph matches the order in the data
+def estimate_bias(
+    data: np.ndarray,
+    graph: nx.DiGraph,
+    adjustment_sets: list[set[str]],
+    unbiased_set: list[str],
+    n_bootstrap: int = 1000
+) -> dict[tuple[str, ...], float]:
+    """
+    Estimates the bias of each candidate adjustment set by comparing treatment effect estimates
+    to the effect estimated using the unbiased set, based on bootstrapping.
 
+    Parameters:
+    - data: Data array of shape (len(variables), sample_size).
+    - graph: NetworkX graph representing the causal structure.
+    - adjustment_sets: List of candidate adjustment sets to evaluate.
+    - unbiased_set: Adjustment set assumed to give unbiased estimate of the treatment effect.
+    - n_bootstrap: Number of bootstrap replications.
+
+    Returns:
+    - dict: Mapping from adjustment set (as tuple) to estimated bias.
+    """
+    # create a list of variable names in the order they appear in the data
+    variables = list(graph.nodes())  
+
+    # keep track of estimated biases
     biases = defaultdict(list)
 
+    # bootstrap
     for _ in range(n_bootstrap):
-        # Resample the data with replacement
         bootstrap_sample = resample(data.T).T
 
-        # Estimate the treatment effect using the unbiased set
+        # estimate the ATE using the unbiased set
         unbiased_treatment_effect = estimate_treatment_effect(bootstrap_sample, unbiased_set, variables)
 
         for adj_set in adjustment_sets:
-            # Estimate the treatment effect using the adjustment set
+            # estimate the ATE using the (potentially biased) adjustment set
             adj_treatment_effect = estimate_treatment_effect(bootstrap_sample, adj_set, variables)
 
-            # Calculate the bias
             bias = adj_treatment_effect - unbiased_treatment_effect
             biases[tuple(adj_set)].append(bias)
 
-    # Calculate the mean bias for each key
+    # calculate the mean bias for each adjustment set
     mean_biases = {key: np.mean(value) for key, value in biases.items()}
     return mean_biases
