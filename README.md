@@ -18,7 +18,7 @@ All scripts are configured with [Hydra](https://hydra.cc). Settings can be chang
 | `adjustment_sets.py` | Selection of the adjustment set with the smallest estimated MSE or variance, including variance and bootstrap bias estimation. |
 | `main.py` | Simulations for the models M1 and M2 with an estimated or a fixed adjustment set. |
 | `oracle.py` | MSE-optimal adjustment set based on the true model parameters. |
-| `main_coverage.py` | Confidence intervals after adjustment set selection. |
+| `coverage.py` | Confidence intervals after adjustment set selection. |
 | `non_gaussian.py` | Experiments with non-Gaussian noise (models M3 and M4). |
 | `prepare_natality.py`, `natality.py` | Application to the 2023 U.S. birth certificate data. |
 | `plots.py` | Figures and tables of the simulation experiments. |
@@ -60,7 +60,7 @@ python plots.py results_dir=outputs
 ### Confidence intervals
 
 ```sh
-python main_coverage.py graph=m1 sample_size=50
+python coverage.py graph=m1 sample_size=50
 ```
 
 This is run for `graph=m1,m2` and `sample_size=50,100`. The number of parallel processes is set with `n_jobs`.
