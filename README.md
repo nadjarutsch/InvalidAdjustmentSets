@@ -28,14 +28,23 @@ All scripts are configured with [Hydra](https://hydra.cc). Settings can be chang
 
 ### Selection of adjustment sets (M1 and M2)
 
-The MSE-optimal adjustment set for each sample size is obtained from the true model parameters:
+There are two different ways in which an MSE-optimal adjustment set appears in these experiments:
+
+- The **oracle set** $O_n$ is the adjustment set with the smallest true MSE. It is computed from the true model parameters and does not use any data. It is not available in practice and only serves as a benchmark.
+- The **estimated set** $\hat O_n$ is selected from data: the MSE of each candidate set is estimated on the simulated dataset, and the set with the smallest estimated MSE is chosen. This is the procedure proposed in the paper.
+
+#### Oracle: MSE-optimal set from the true parameters
+
+`oracle.py` computes the true MSE of every adjustment set from the structural coefficients in `config/graph/` and prints the oracle set $O_n$ for each sample size. No data is simulated.
 
 ```sh
 python oracle.py graph=m1
 python oracle.py graph=m2
 ```
 
-The simulations are run separately for each model, sample size and method. For example, for M1 with n = 50:
+#### Estimation: selecting the adjustment set from data
+
+`main.py` simulates datasets and, for each dataset, selects an adjustment set from the reduced search space and estimates the treatment effect with it. The selection only uses the dataset and the causal graph, not the true parameters. The simulations are run separately for each model, sample size and selection criterion. For example, for M1 with n = 50:
 
 ```sh
 # estimated MSE-optimal set
@@ -43,15 +52,22 @@ python main.py graph=m1 sample_size=50 optimality=MSE
 
 # set with the smallest estimated variance
 python main.py graph=m1 sample_size=50 optimality=Variance
+```
 
-# fixed adjustment sets: the optimal set O and the oracle set {O1}
+#### Baselines: fixed adjustment sets
+
+For comparison, `main.py` is run on the same datasets with a fixed adjustment set instead of a selected one: the asymptotically optimal set $O$, and the oracle set $O_n$ printed by `oracle.py` for that sample size (for M1 with n = 50, this is $\{O_1\}$).
+
+```sh
 python main.py graph=m1 sample_size=50 estimate_adjustment_set=false "adjustment_set=[O1,O2]"
 python main.py graph=m1 sample_size=50 estimate_adjustment_set=false "adjustment_set=[O1]"
 ```
 
+#### Tables and figures
+
 The sample sizes used in the paper are listed in `config/graph/m1.yaml` and `config/graph/m2.yaml`. Several settings can be run with one command using Hydra's multirun option, e.g. `python main.py -m graph=m1 sample_size=10,20,30,40,50,100,500,1000 optimality=MSE,Variance`.
 
-The tables and figures are created from all result files in a directory:
+The tables and figures are created from all result files in a directory. They compare the MSE of the treatment effect estimate for the estimated set, the optimal set $O$ and the oracle set:
 
 ```sh
 python plots.py results_dir=outputs
