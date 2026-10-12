@@ -2,38 +2,11 @@ import numpy as np
 import sympy as sp
 import hydra
 from omegaconf import DictConfig
-import networkx as nx
 import json
 import os
 import uuid
 
 from adjustment_sets import get_adjustment_set, estimate_treatment_effect
-
-
-def extract_graph(graph_config: DictConfig) -> nx.DiGraph:
-    """
-    Extracts a directed networkx DiGraph from the provided configuration.
-
-    Parameters:
-    - graph_config (DictConfig): The configuration object containing variables and structural equations.
-
-    Returns:
-    - nx.DiGraph: A directed graph representing the causal relationships between variables.
-    """
-    graph = nx.DiGraph()
-
-    # add nodes
-    for variable in graph_config.variables:
-        graph.add_node(variable.name)
-
-    # add edges
-    for edge in graph_config.edges:
-        effect = edge.effect
-        equation_vars = [var.name for var in graph_config.variables if var.name in edge.equation]
-        for var in equation_vars:
-            graph.add_edge(var, effect)
-
-    return graph
 
 
 def generate_data(variables: list, cfg: DictConfig, seed: int) -> np.ndarray:
@@ -75,7 +48,7 @@ def generate_data(variables: list, cfg: DictConfig, seed: int) -> np.ndarray:
     return data_array
 
 
-@hydra.main(config_path='./config', config_name='config')
+@hydra.main(config_path='./config', config_name='config', version_base=None)
 def main(cfg: DictConfig) -> None:
     """
     Runs experiments based on a Hydra configuration.
@@ -85,14 +58,17 @@ def main(cfg: DictConfig) -> None:
 
     Parameters:
         cfg (DictConfig): The Hydra configuration object containing experimental settings, including the number of seeds,
-                        the sample size, the graph, whether to estimate the adjustment set, a fixed adjustment set (only
-                        used if not estimated), and the optimality criterion.
+                        the sample size, the graph with its candidate adjustment sets, whether to estimate the adjustment
+                        set, a fixed adjustment set (only used if not estimated), and the optimality criterion.
     """
 
-    # extract variable names and adjustment set from Hydra config
+    # extract variable names and adjustment sets from Hydra config
     variables = [var['name'] for var in cfg.graph['variables']]
+    candidates = [list(adj_set) for adj_set in cfg.graph.candidates]
+    valid_sets = [list(adj_set) for adj_set in cfg.graph.valid_sets]
+    reference_set = list(cfg.graph.reference_set)
+    adjustment_set = list(cfg.adjustment_set)
     results = []
-    adjustment_set = cfg.adjustment_set
 
     # generate unique filename
     output_dir = os.getcwd()
@@ -100,12 +76,13 @@ def main(cfg: DictConfig) -> None:
     filename = os.path.join(output_dir, f'results_{cfg.graph.id}_{cfg.sample_size}_estimated_{cfg.estimate_adjustment_set}_{cfg.optimality}_optimality_{unique_id}.json')
 
     for seed in range(0, cfg.n_seeds):
+        # the bootstrap samples are drawn from the same random stream, after the data
         data = generate_data(variables, cfg, seed)
 
         # estimate MSE-optimal or variance-optimal adjustment set
         if cfg.estimate_adjustment_set:
-            graph = extract_graph(cfg.graph)
-            adjustment_set, bias_est, variance_est, mse_est, rss_A = get_adjustment_set(cfg.graph.id, data, graph, cfg.optimality, cfg.n_bootstrap, variables)
+            adjustment_set, bias_est, variance_est, mse_est, rss_A = get_adjustment_set(
+                data, variables, candidates, reference_set, valid_sets, cfg.optimality, cfg.n_bootstrap)
         else:
             # for a fixed adjustment set, we do not need to estimate bias and variance
             bias_est, variance_est, rss_A, mse_est = None, None, None, None
@@ -126,14 +103,12 @@ def main(cfg: DictConfig) -> None:
         }
 
         results.append(result)
-       
+
         # save results to JSON file
-        try:
-            with open(filename, 'w') as f:
-                json.dump(results, f, indent=4)
-            print(f"File saved successfully: {filename}")
-        except Exception as e:
-            print(f"Error saving file: {e}")
+        with open(filename, 'w') as f:
+            json.dump(results, f, indent=4)
+
+    print(f"File saved successfully: {filename}")
 
 
 if __name__ == "__main__":

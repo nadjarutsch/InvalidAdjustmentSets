@@ -15,3 +15,21 @@ edges:
     equation: "-1*W1 + 0.1*W2 + 40*O2"
   - effect: Y
     equation: "3*A + 5*O1 + 0.5*O2"
+
+# asymptotically optimal adjustment set O, used as the reference for bias estimation
+reference_set: [O1, O2]
+
+# reduced search space after applying the graphical criteria
+candidates:
+  - []
+  - [O1]
+  - [O2]
+  - [W1]
+  - [W2]
+  - [W1, O2]
+  - [W2, O2]
+  - [O1, O2]
+
+# candidates that are valid adjustment sets
+valid_sets:
+  - [O1, O2]

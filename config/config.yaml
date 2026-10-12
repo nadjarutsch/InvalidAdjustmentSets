@@ -1,5 +1,6 @@
 defaults:
   - graph: m1
+  - _self_
 
 sample_size: 50
 n_seeds: 10000
@@ -9,3 +10,8 @@ adjustment_set:
   - O2
 estimate_adjustment_set: true
 optimality: MSE
+
+# results are saved to the Hydra output directory of each run
+hydra:
+  job:
+    chdir: true

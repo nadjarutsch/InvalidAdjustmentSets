@@ -17,3 +17,20 @@ edges:
     equation: "0.29*A + 0.71*O1 + 0.14*O2"
 
 
+
+
+# asymptotically optimal adjustment set O, used as the reference for bias estimation
+reference_set: [O1, O2]
+
+# reduced search space after applying the graphical criteria
+candidates:
+  - []
+  - [O1]
+  - [O2]
+  - [C1]
+  - [O1, O2]
+
+# candidates that are valid adjustment sets
+valid_sets:
+  - [O2]
+  - [O1, O2]
