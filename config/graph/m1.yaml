@@ -16,6 +16,12 @@ edges:
   - effect: Y
     equation: "3*A + 5*O1 + 0.5*O2"
 
+# true average treatment effect of A on Y
+treatment_effect: 3
+
+# sample sizes of the experiments
+sample_sizes: [10, 20, 30, 40, 50, 100, 500, 1000]
+
 # asymptotically optimal adjustment set O, used as the reference for bias estimation
 reference_set: [O1, O2]
 

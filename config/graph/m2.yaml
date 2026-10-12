@@ -19,6 +19,12 @@ edges:
 
 
 
+# true average treatment effect of A on Y
+treatment_effect: 0.29
+
+# sample sizes of the experiments
+sample_sizes: [10, 20, 30, 40, 50, 100, 150, 200, 1000]
+
 # asymptotically optimal adjustment set O, used as the reference for bias estimation
 reference_set: [O1, O2]
 

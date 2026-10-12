@@ -1,0 +1,16 @@
+defaults:
+  - graph: m1
+  - _self_
+
+sample_size: 50
+n_seeds: 1000
+n_bootstrap: 1000         # bootstrap samples for bias estimation within each selection
+n_bootstrap_outer: 1000   # bootstrap samples for the confidence intervals
+confidence_level: 0.95
+optimality: MSE
+n_jobs: 8
+
+# results are saved to the Hydra output directory of each run
+hydra:
+  job:
+    chdir: true

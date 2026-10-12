@@ -2,38 +2,6 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 
 
-def fit_outcome_regression(
-    data: np.ndarray,
-    adjustment_set: list[str],
-    variables: list[str]
-) -> tuple[float, bool]:
-    """
-    Regresses the outcome Y on the treatment A and the adjustment set with ordinary least-squares (OLS),
-    including an intercept.
-
-    Parameters:
-    - data: Data array of shape (len(variables), sample_size).
-    - adjustment_set: Variables that are included in the adjustment set.
-    - variables: List of all variables, order corresponding to the indices in the data array.
-
-    Returns:
-    - tuple: (coefficient of the treatment, whether the regression design has full column rank)
-    """
-    # map variable names to indices
-    variable_indices = {name: i for i, name in enumerate(variables)}
-    adjustment_indices = [variable_indices[name] for name in sorted(adjustment_set)]
-
-    Y = data[variable_indices['Y'], :]  # outcome variable
-    A = data[variable_indices['A'], :]  # treatment variable
-
-    # covariates X, with the treatment in the last column
-    X = np.column_stack((data[adjustment_indices, :].T, A))
-    model = LinearRegression().fit(X, Y)
-
-    # the rank refers to the centered covariates, the intercept is fitted separately
-    return model.coef_[-1], model.rank_ == X.shape[1]
-
-
 def estimate_treatment_effect(data: np.ndarray, adjustment_set: list[str], variables: list[str]) -> float:
     """
     Estimates the average treatment effect of the treatment A on the outcome Y with ordinary least-squares
@@ -47,9 +15,64 @@ def estimate_treatment_effect(data: np.ndarray, adjustment_set: list[str], varia
     Returns:
     - float: estimated average treatment effect
     """
-    treatment_effect, _ = fit_outcome_regression(data, adjustment_set, variables)
+    # map variable names to indices
+    variable_indices = {name: i for i, name in enumerate(variables)}
+    adjustment_indices = [variable_indices[name] for name in sorted(adjustment_set)]
 
-    return treatment_effect
+    Y = data[variable_indices['Y'], :]  # outcome variable
+    A = data[variable_indices['A'], :]  # treatment variable
+
+    # covariates X, with the treatment in the last column
+    X = np.column_stack((data[adjustment_indices, :].T, A))
+
+    # estimate ATE
+    model = LinearRegression().fit(X, Y)
+
+    return model.coef_[-1]
+
+
+def bootstrap_treatment_effects(
+    data: np.ndarray,
+    adjustment_set: list[str],
+    variables: list[str],
+    indices: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Estimates the average treatment effect on several bootstrap samples at once. Each sample is fitted
+    with OLS including an intercept, by centering the variables and solving the least-squares problem
+    with a singular value decomposition, as in LinearRegression.
+
+    Parameters:
+    - data: Data array of shape (len(variables), sample_size).
+    - adjustment_set: Variables that are included in the adjustment set.
+    - variables: List of all variables, order corresponding to the indices in the data array.
+    - indices: Indices of the resampled observations, shape (number of bootstrap samples, sample_size).
+
+    Returns:
+    - tuple: (estimated treatment effect per bootstrap sample, whether the regression design of each
+        bootstrap sample has full column rank)
+    """
+    adjustment_indices = [variables.index(name) for name in sorted(adjustment_set)]
+
+    # resampled outcome and covariates, with the treatment in the last column
+    Y = data[variables.index('Y'), :][indices]
+    X = data[adjustment_indices + [variables.index('A')], :].T[indices]
+
+    # center within each bootstrap sample to account for the intercept
+    Y = Y - Y.mean(axis=1, keepdims=True)
+    X = X - X.mean(axis=1, keepdims=True)
+
+    # singular values below the cutoff are treated as zero
+    U, S, Vt = np.linalg.svd(X, full_matrices=False)
+    cutoff = max(X.shape[1:]) * np.finfo(float).eps * S[:, :1]
+    nonzero = S > cutoff
+
+    # least-squares coefficient of the treatment
+    with np.errstate(divide='ignore', invalid='ignore'):
+        weights = np.where(nonzero, np.einsum('bnp,bn->bp', U, Y) / S, 0.0)
+    treatment_effects = np.einsum('bp,bp->b', Vt[:, :, -1], weights)
+
+    return treatment_effects, nonzero.all(axis=1)
 
 
 def estimate_variance(
@@ -144,26 +167,25 @@ def estimate_bias(
             raise RuntimeError(f"Only {n_accepted} of {n_bootstrap} bootstrap samples had full rank "
                                f"after {max_proposals} proposals.")
 
-        # draw observations with replacement, shared by all adjustment sets
-        indices = np.random.randint(0, sample_size, size=sample_size)
-        bootstrap_sample = data[:, indices]
-        n_proposed += 1
+        # draw observations with replacement for all missing samples, shared by all adjustment sets
+        n_draws = min(n_bootstrap - n_accepted, max_proposals - n_proposed)
+        indices = np.random.randint(0, sample_size, size=(n_draws, sample_size))
+        n_proposed += n_draws
 
         # estimate the ATE using the reference set and each (potentially biased) adjustment set
-        fits = [fit_outcome_regression(bootstrap_sample, adj_set, variables)
-                for adj_set in [reference_set] + adjustment_sets]
+        reference_effects, accepted = bootstrap_treatment_effects(data, reference_set, variables, indices)
+        effects = {}
+        for adj_set in adjustment_sets:
+            effects[adj_set], full_rank = bootstrap_treatment_effects(data, adj_set, variables, indices)
+            accepted = accepted & full_rank
 
-        # discard the sample for all sets if any regression design is rank-deficient
-        if not all(full_rank for _, full_rank in fits):
-            continue
-
-        reference_treatment_effect = fits[0][0]
-        for adj_set, (adj_treatment_effect, _) in zip(adjustment_sets, fits[1:]):
-            differences[adj_set].append(adj_treatment_effect - reference_treatment_effect)
-        n_accepted += 1
+        # discard a sample for all sets if any regression design is rank-deficient
+        for adj_set in adjustment_sets:
+            differences[adj_set].append((effects[adj_set] - reference_effects)[accepted])
+        n_accepted += accepted.sum()
 
     # calculate the mean difference for each adjustment set
-    return {adj_set: np.mean(values) for adj_set, values in differences.items()}
+    return {adj_set: np.mean(np.concatenate(values)) for adj_set, values in differences.items()}
 
 
 def get_adjustment_set(
