@@ -20,3 +20,6 @@ multirun/
 # Local directories
 process/
 jobs/
+# Data and figures
+data/
+figures/

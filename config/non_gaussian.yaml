@@ -1,0 +1,31 @@
+experiment: m3   # m3: sensitivity of the sample size criterion, m4: counterexample to the graphical criteria
+n_jobs: 8
+
+m3:
+  seed: 20260904
+  # grid of the sinh-arcsinh parameters
+  epsilon_min: -1
+  epsilon_max: 1
+  n_epsilon: 17
+  delta_min: 0.7
+  delta_max: 1.4
+  n_delta: 15
+  # (initial, maximum) number of replications per sample size; the next stage is only run for noise
+  # distributions whose threshold is not resolved
+  replication_stages:
+    - [4000, 8000]
+    - [16000, 32000]
+    - [64000, 128000]
+    - [256000, 512000]
+
+m4:
+  seed: 20260909
+  sample_size: 20
+  gamma_shape: 0.2
+  coefficient: 0.05
+  n_replications: 1000000
+
+# results are saved to the Hydra output directory of each run
+hydra:
+  job:
+    chdir: true

@@ -130,7 +130,8 @@ def estimate_bias(
     reference_set: list[str],
     variables: list[str],
     n_bootstrap: int = 1000,
-    max_proposals: int = 100000
+    max_proposals: int = 100000,
+    rng: np.random.Generator | None = None
 ) -> dict[tuple[str, ...], float]:
     """
     Estimates the bias of each candidate adjustment set with a paired bootstrap: on every bootstrap
@@ -149,6 +150,8 @@ def estimate_bias(
     - variables: List of all variables, order corresponding to the indices in the data array.
     - n_bootstrap: Number of accepted bootstrap samples.
     - max_proposals: Maximum number of proposed bootstrap samples.
+    - rng: Random number generator for the bootstrap samples. By default, the global NumPy random
+        state is used.
 
     Returns:
     - dict: Mapping from adjustment set (as sorted tuple) to estimated bias.
@@ -169,7 +172,10 @@ def estimate_bias(
 
         # draw observations with replacement for all missing samples, shared by all adjustment sets
         n_draws = min(n_bootstrap - n_accepted, max_proposals - n_proposed)
-        indices = np.random.randint(0, sample_size, size=(n_draws, sample_size))
+        if rng is None:
+            indices = np.random.randint(0, sample_size, size=(n_draws, sample_size))
+        else:
+            indices = rng.integers(0, sample_size, size=(n_draws, sample_size))
         n_proposed += n_draws
 
         # estimate the ATE using the reference set and each (potentially biased) adjustment set
@@ -195,7 +201,8 @@ def get_adjustment_set(
     reference_set: list[str],
     valid_sets: list[list[str]],
     optimality: str,
-    n_bootstrap: int = 1000
+    n_bootstrap: int = 1000,
+    rng: np.random.Generator | None = None
 ) -> tuple[list[str], float | None, float, float | None, float]:
     """
     Selects the adjustment set with the smallest estimated MSE or the smallest estimated variance.
@@ -213,6 +220,8 @@ def get_adjustment_set(
     - valid_sets: Candidate adjustment sets that are valid according to the causal graph.
     - optimality: Selection criterion ("Variance" or "MSE").
     - n_bootstrap: Number of accepted bootstrap samples for bias estimation.
+    - rng: Random number generator for the bootstrap samples. By default, the global NumPy random
+        state is used.
 
     Returns:
     - tuple: (best adjustment set, estimated bias, estimated variance, estimated MSE, treatment RSS)
@@ -262,7 +271,7 @@ def get_adjustment_set(
     invalid_properties = [prop for prop in properties if prop['Adjustment set'] not in valid_sets]
     if optimality == "MSE" and invalid_properties:
         biases = estimate_bias(data, [prop['Adjustment set'] for prop in invalid_properties],
-                               reference_set, variables, n_bootstrap)
+                               reference_set, variables, n_bootstrap, rng=rng)
 
         for prop in invalid_properties:
             prop['Bias'] = biases[prop['Adjustment set']]

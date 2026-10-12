@@ -1,0 +1,17 @@
+# directory with the result files of main.py (searched recursively) and file with the results of
+# non_gaussian.py (experiment=m3); set a path to null to skip the corresponding figures
+results_dir: outputs
+non_gaussian_path: null
+output_dir: figures
+
+# sample size of the selection frequency plots
+selection_sample_size: 100
+
+# fixed adjustment sets and range of sample sizes shown in the RMSE plots of the motivating examples
+examples:
+  m1:
+    adjustment_sets: [[O1, O2], [O1], [W2]]
+    sample_size_range: [50, 1000]
+  m2:
+    adjustment_sets: [[O1, O2], [O1], [C1]]
+    sample_size_range: [20, 300]

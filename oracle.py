@@ -73,14 +73,19 @@ def true_mse(
     return bias, asymptotic_variance, mse
 
 
-def get_oracle_set(graph_config: DictConfig, sample_size: int) -> tuple[list[str], float]:
+def get_oracle_set(
+    graph_config: DictConfig,
+    sample_size: int,
+    adjustment_sets: list[list[str]] | None = None
+) -> tuple[list[str], float]:
     """
-    Finds the MSE-optimal adjustment set O_n among all subsets of the covariates, using the true model
-    parameters.
+    Finds the MSE-optimal adjustment set O_n using the true model parameters, by default among all subsets
+    of the covariates.
 
     Parameters:
     - graph_config (DictConfig): The configuration object containing variables and structural equations.
     - sample_size (int): Sample size n.
+    - adjustment_sets: Adjustment sets to compare. By default, all subsets of the covariates.
 
     Returns:
     - tuple: (MSE-optimal adjustment set, its MSE)
@@ -90,7 +95,10 @@ def get_oracle_set(graph_config: DictConfig, sample_size: int) -> tuple[list[str
     covariance = population_covariance(graph_config)
 
     # search over all subsets of the covariates
-    subsets = [list(subset) for size in range(len(covariates) + 1) for subset in combinations(covariates, size)]
+    if adjustment_sets is None:
+        subsets = [list(subset) for size in range(len(covariates) + 1) for subset in combinations(covariates, size)]
+    else:
+        subsets = [list(subset) for subset in adjustment_sets]
     mses = [true_mse(covariance, subset, variables, graph_config.treatment_effect, sample_size)[2]
             for subset in subsets]
     best = int(np.argmin(mses))

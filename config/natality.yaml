@@ -1,0 +1,18 @@
+# 2023 U.S. natality data, see prepare_natality.py
+archive_path: data/Nat2023us.zip
+sample_path: data/natality_sample.npz
+
+# seeds for selecting the 200,000 records and for splitting them
+sampling_seed: 20230915
+split_seed: 20230916
+
+# experiments on small datasets drawn from the training sample
+sample_sizes: [50, 75, 100, 200]
+n_datasets: 2000
+n_bootstrap: 1000
+seed: 20230917
+
+# results are saved to the Hydra output directory of each run
+hydra:
+  job:
+    chdir: true

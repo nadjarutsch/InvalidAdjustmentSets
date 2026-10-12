@@ -7,6 +7,9 @@ dependencies:
   - pip:
     - hydra-core
   - numpy
+  - scipy
   - sympy
-  - networkx
   - scikit-learn
+  - pandas
+  - matplotlib
+  - seaborn

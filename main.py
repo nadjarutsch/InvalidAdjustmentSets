@@ -90,6 +90,7 @@ def main(cfg: DictConfig) -> None:
         treatment_effect_est = estimate_treatment_effect(data, adjustment_set, variables)
 
         result = {
+            "Graph": cfg.graph.id,
             "Seed": seed,
             "Treatment Effect": treatment_effect_est,
             "Adjustment Set": list(adjustment_set),
